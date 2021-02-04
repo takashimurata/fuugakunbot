@@ -16,9 +16,13 @@
  */
 
 require_once('./LINEBotTiny.php');
-require_once('./accesstoken.php');
 
-$client = new LINEBotTiny($channelAccessToken, $channelSecret);
+//.envの呼び出し
+require './vendor/autoload.php';
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+$dotenv->load();
+
+$client = new LINEBotTiny($_ENV["ACCESSTOKEN"], $_ENV["CHANNELSECRET"]);
 foreach ($client->parseEvents() as $event) {
     switch ($event['type']) {
         case 'message':
