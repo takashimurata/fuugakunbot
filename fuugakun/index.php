@@ -3,10 +3,10 @@
 //メッセージを取得し、値を変更。
 //この時に、Qiitaは検索ワードをとswitchに入れる単語は分ける。
 $message = 'trend';
+require './vendor/autoload.php';
 
 switch ($message) {
   case 'trend';
-    require './vendor/autoload.php';
     $html = file_get_contents('https://qiita.com');
     $phpobj = phpQuery::newDocument($html);
     $links = $phpobj["h2 > a"];
@@ -16,7 +16,6 @@ switch ($message) {
     }
     break;
   case 'qiita';
-    require './vendor/autoload.php';
     $search_word = 'オブジェクト指向';
     $html = file_get_contents('https://qiita.com/search?sort=&q=' . $search_word);
     $phpobj = phpQuery::newDocument($html);
