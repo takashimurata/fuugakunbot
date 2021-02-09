@@ -24,29 +24,42 @@ $dotenv->load();
 
 $client = new LINEBotTiny($_ENV["ACCESSTOKEN"], $_ENV["CHANNELSECRET"]);
 foreach ($client->parseEvents() as $event) {
-    switch ($event['type']) {
-        case 'message':
-            $message = $event['message'];
-            switch ($message['type']) {
-                case 'text':
-                    $client->replyMessage([
-                        'replyToken' => $event['replyToken'],
-                        'messages' => [
-                            [
-                                'type' => 'text',
-                                'text' => $message['text']
-                            ]
-                        ]
-                    ]);
-                    break;
-                default:
-                    error_log('Unsupported message type: ' . $message['type']);
-                    break;
-            }
-            break;
+  switch ($event['type']) {
+    case 'follow':
+
+      //DB接続
+      require_once('./db_connection.php');
+
+      //line_accesstokenを取得
+      $sql = 'INSERT INTO `users` (line_accesstoken) VALUES (:line_accesstoken)';
+      $stmt = $dbh->prepare($sql);
+      $line_accesstoken= $event['source']['userId'];
+      $params = array(':line_accesstoken' => $line_accesstoken);
+      $stmt->execute($params);
+      break;
+
+    case 'message':
+      $message = $event['message'];
+      switch ($message['type']) {
+        case 'text':
+          $client->replyMessage([
+              'replyToken' => $event['replyToken'],
+              'messages' => [
+              [
+              'type' => 'text',
+              'text' => $message['text']
+              ]
+              ]
+          ]);
+          break;
         default:
-            error_log('Unsupported event type: ' . $event['type']);
-            break;
-    }
+          error_log('Unsupported message type: ' . $message['type']);
+          break;
+      }
+      break;
+    default:
+      error_log('Unsupported event type: ' . $event['type']);
+      break;
+  }
 };
 ?>
