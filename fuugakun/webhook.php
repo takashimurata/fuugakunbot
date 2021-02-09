@@ -51,6 +51,30 @@ foreach ($client->parseEvents() as $event) {
       $stmt->execute($params);
       break;
 
+    case 'location' && 'message':
+
+      //DB接続
+      require_once('./db_connection.php');
+
+      //位置情報をDBへ保存
+      $sql = 'UPDATE users SET latitude = :lat, longitude = :lon WHERE line_accesstoken = :line_accesstoken';
+      $stmt = $dbh->prepare($sql);
+      $line_accesstoken= $event['source']['userId'];
+      $lat = $event['message']['latitude'];  //緯度
+      $lon = $event['message']['longitude'];//経度
+      $params = array(':line_accesstoken' => $line_accesstoken, ':lat' => $lat, ':lon' => $lon);
+      $stmt->execute($params);
+      $client->replyMessage([
+          'replyToken' => $event['replyToken'],
+          'messages' => [
+              [
+              'type' => 'text',
+              'text' => '位置情報登録オッケー！'
+              ]
+          ]
+      ]);
+      break;
+
     case 'message':
       $message = $event['message'];
       switch ($message['type']) {
@@ -69,10 +93,6 @@ foreach ($client->parseEvents() as $event) {
           error_log('Unsupported message type: ' . $message['type']);
           break;
       }
-      break;
-    default:
-      error_log('Unsupported event type: ' . $event['type']);
-      break;
   }
 };
 ?>
