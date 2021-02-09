@@ -38,6 +38,19 @@ foreach ($client->parseEvents() as $event) {
       $stmt->execute($params);
       break;
 
+    case 'unfollow':
+
+      //DB接続
+      require_once('./db_connection.php');
+
+      //ユーザーを削除
+      $sql = 'DELETE FROM users WHERE line_accesstoken = :line_accesstoken';
+      $stmt = $dbh->prepare($sql);
+      $line_accesstoken= $event['source']['userId'];
+      $params = array(':line_accesstoken' => $line_accesstoken);
+      $stmt->execute($params);
+      break;
+
     case 'message':
       $message = $event['message'];
       switch ($message['type']) {
@@ -45,10 +58,10 @@ foreach ($client->parseEvents() as $event) {
           $client->replyMessage([
               'replyToken' => $event['replyToken'],
               'messages' => [
-              [
-              'type' => 'text',
-              'text' => $message['text']
-              ]
+                  [
+                  'type' => 'text',
+                  'text' => $message['text']
+                  ]
               ]
           ]);
           break;
