@@ -1,5 +1,6 @@
 {
     "require": {
-        "vlucas/phpdotenv": "^5.3"
+        "vlucas/phpdotenv": "^5.3",
+        "electrolinux/phpquery": "^0.9.6"
     }
 }
