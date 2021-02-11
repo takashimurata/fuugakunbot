@@ -16,6 +16,7 @@
  */
 
 require_once('./LINEBotTiny.php');
+require_once('./db_connection.php');
 
 //.envの呼び出し
 require './vendor/autoload.php';
@@ -27,9 +28,6 @@ foreach ($client->parseEvents() as $event) {
   switch ($event['type']) {
     case 'follow':
 
-      //DB接続
-      require_once('./db_connection.php');
-
       //line_accesstokenを取得
       $sql = 'INSERT INTO `users` (line_accesstoken) VALUES (:line_accesstoken)';
       $stmt = $dbh->prepare($sql);
@@ -40,57 +38,101 @@ foreach ($client->parseEvents() as $event) {
 
     case 'unfollow':
 
-      //DB接続
-      require_once('./db_connection.php');
-
       //ユーザーを削除
       $sql = 'DELETE FROM users WHERE line_accesstoken = :line_accesstoken';
       $stmt = $dbh->prepare($sql);
       $line_accesstoken= $event['source']['userId'];
-      $params = array(':line_accesstoken' => $line_accesstoken);
-      $stmt->execute($params);
+      $stmt->bindValue(':line_accesstoken', $line_accesstoken);
+      $stmt->execute();
       break;
 
-    case 'location' && 'message':
+    case 'message':
+      switch ($event['message']['type']) {
+        case 'text':
+          //文字分割
+          //初期化
+          $reply_message = '';
 
-      //DB接続
-      require_once('./db_connection.php');
+          //Qiitaの文字が含まれているか。
+          if (strpos($event['message']['text'], 'Qiita') !== false || strpos($event['message']['text'], 'qiita') !== false) {
 
-      //位置情報をDBへ保存
-      $sql = 'UPDATE users SET latitude = :lat, longitude = :lon WHERE line_accesstoken = :line_accesstoken';
-      $stmt = $dbh->prepare($sql);
-      $line_accesstoken= $event['source']['userId'];
-      $lat = $event['message']['latitude'];  //緯度
-      $lon = $event['message']['longitude'];//経度
-      $params = array(':line_accesstoken' => $line_accesstoken, ':lat' => $lat, ':lon' => $lon);
-      $stmt->execute($params);
-      $client->replyMessage([
-          'replyToken' => $event['replyToken'],
-          'messages' => [
+            //messageを2つに分ける。
+            $split_word = explode(" ", $event['message']['text'], 2);
+
+            //Qiitaのみ入れた場合のエラー制御
+            if (!empty($split_word[1])){
+
+              //初めの文字がQiitaだった場合、検索ワード定義とflagをtrueへ
+              if ($split_word[0] === 'Qiita' || $split_word[0] === 'qiita') {
+                $search_word = $split_word[1];
+                $html = file_get_contents('https://qiita.com/search?sort=&q=' . $search_word);
+                $phpobj = phpQuery::newDocument($html);
+                $links = $phpobj["h1 > a"];
+
+                //配列を結合
+                foreach ($links as $link) {
+                  $reply_message .= pq($link)->text() . "\n";
+                  $reply_message .= 'https://qiita.com' . pq($link)->attr("href") . "\n";
+                }
+              }
+            }
+
+            //Wikiの文字が含まれているか
+          } elseif (strpos($event['message']['text'], 'Wiki') !== false || strpos($event['message']['text'], 'wiki') !== false) {
+
+            //messageを2つに分ける。
+            $split_word = explode(" ", $event['message']['text'], 2);
+
+            //wikiのみ入れた場合のエラー制御
+            if (!empty($split_word[1])){
+
+              //初めの文字がQiitaだった場合、検索ワード定義とflagをtrueへ
+              if ($split_word[0] === 'Wiki' || $split_word[0] === 'wiki') {
+                $search_word = $split_word[1];
+                $reply_message .= $search_word . 'をwikiで検索したよ〜' . "\n";
+                $reply_message .= 'https://ja.wikipedia.org/wiki/' . $search_word;
+              }
+            }
+          } else {
+            $reply_message = '開発中！！！！';
+          }
+
+          //リプライ
+          $client->replyMessage([
+              'replyToken' => $event['replyToken'],
+              'messages' => [
+              [
+              'type' => 'text',
+              'text' => $reply_message
+              ]
+              ]
+          ]);
+          break;
+
+        case 'location' && 'message':
+
+          //位置情報をDBへ保存
+          $sql = 'UPDATE users SET latitude = :lat, longitude = :lon WHERE line_accesstoken = :line_accesstoken';
+          $stmt = $dbh->prepare($sql);
+          $line_accesstoken= $event['source']['userId'];
+          $lat = $event['message']['latitude'];  //緯度
+          $lon = $event['message']['longitude'];//経度
+          $stmt->bindValue(':line_accesstoken', $line_accesstoken);
+          $stmt->bindValue(':lat', $lat);
+          $stmt->bindValue(':lon', $lon);
+          $stmt->execute();
+          $client->replyMessage([
+              'replyToken' => $event['replyToken'],
+              'messages' => [
               [
               'type' => 'text',
               'text' => '位置情報登録オッケー！'
               ]
-          ]
-      ]);
-      break;
-
-    case 'message':
-      $message = $event['message'];
-      switch ($message['type']) {
-        case 'text':
-          $client->replyMessage([
-              'replyToken' => $event['replyToken'],
-              'messages' => [
-                  [
-                  'type' => 'text',
-                  'text' => $message['text']
-                  ]
               ]
           ]);
           break;
         default:
-          error_log('Unsupported message type: ' . $message['type']);
+          error_log('Unsupported message type: ' . $event['message']['type']);
           break;
       }
   }
