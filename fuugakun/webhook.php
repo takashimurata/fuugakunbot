@@ -32,8 +32,8 @@ foreach ($client->parseEvents() as $event) {
       $sql = 'INSERT INTO `users` (line_accesstoken) VALUES (:line_accesstoken)';
       $stmt = $dbh->prepare($sql);
       $line_accesstoken= $event['source']['userId'];
-      $params = array(':line_accesstoken' => $line_accesstoken);
-      $stmt->execute($params);
+      $stmt->bindValue(':line_accesstoken', $line_accesstoken);
+      $stmt->execute();
       break;
 
     case 'unfollow':
@@ -54,6 +54,8 @@ foreach ($client->parseEvents() as $event) {
           $reply_message = '';
 
           //Qiitaの文字が含まれているか。
+          //FIXME::qiita,wikiを同時に入れると帰ってこない
+          //FIXME::!== flase 消すと通らない？
           if (strpos($event['message']['text'], 'Qiita') !== false || strpos($event['message']['text'], 'qiita') !== false) {
 
             //messageを2つに分ける。
@@ -77,7 +79,7 @@ foreach ($client->parseEvents() as $event) {
               }
             }
 
-            //Qiitaのトレンド
+          //Qiitaのトレンド
           } elseif (strpos($event['message']['text'], 'トレンド') !== false) {
             $html = file_get_contents('https://qiita.com');
             $phpobj = phpQuery::newDocument($html);
@@ -87,7 +89,7 @@ foreach ($client->parseEvents() as $event) {
               $reply_message .= pq($link)->attr("href") . "\n";
             }
 
-            //Wikiの文字が含まれているか
+          //Wikiの文字が含まれているか
           } elseif (strpos($event['message']['text'], 'Wiki') !== false || strpos($event['message']['text'], 'wiki') !== false) {
 
             //messageを2つに分ける。
@@ -103,6 +105,51 @@ foreach ($client->parseEvents() as $event) {
                 $reply_message .= 'https://ja.wikipedia.org/wiki/' . $search_word;
               }
             }
+          } elseif (strpos($event['message']['text'], '天気予報') !== false) {
+
+            //位置情報の有無の確認
+            $line_accesstoken= $event['source']['userId'];
+            $sql = 'SELECT latitude, longitude FROM users WHERE line_accesstoken = :line_accesstoken';
+            $stmt = $dbh->prepare($sql);
+            $stmt->bindValue(':line_accesstoken', $line_accesstoken);
+            $stmt->execute();
+            $stmt_fetch = $stmt->fetch(PDO::FETCH_ASSOC);
+            $lat = $stmt_fetch['latitude'];
+            $lon = $stmt_fetch['longitude'];
+
+            //位置情報登録なし
+            if ($lat === null) {
+              $reply_message = 'どこの天気予報したらいいんや！下の＋から位置情報を送って！';
+
+            //登録あり
+            } else {
+
+              //TODO::変数名CHECK
+              $weather_info_url = 'https://api.openweathermap.org/data/2.5/onecall?lat=' . $lat . '&lon=' . $lon . '&units=metric&lang=ja&appid=' . $_ENV["WEATHERTOKEN"];
+              $get_weather_info = json_decode(file_get_contents($weather_info_url), true);
+              $json_weather_info = json_encode($get_weather_info);
+              $weather_info = json_decode($json_weather_info, true);
+              $hourly = $weather_info['hourly'];
+
+              //0,1,3,6,9,24時間後の天気予報を表示
+              $forecast_time = [0, 1, 3, 6, 9, 24];
+              foreach ($forecast_time as $i => $hour) {
+                $temp = $hourly[$hour]['temp'];
+                $weather = $hourly[$hour]['weather'][0]['description'];
+
+                //TODO::天気のアイコンを入れたい
+                //TODO::いつ外に出る？と聞く->出発時間前にリプライを送る。->departure_timeへ保存
+                if ($hour === 0) {
+                  $reply_message .= '今の天気は' . $weather . '、温度は' . round($temp) . '度やで！' . "\n";
+                } elseif ($hour === 24) {
+                  $reply_message .= $hour . '時間後は' . $weather . '、温度は' . round($temp) . '度やで！';
+                } else {
+                  $reply_message .= $hour . '時間後は' . $weather . '、温度は' . round($temp) . '度やで！' . "\n";
+                }
+              }
+            }
+            //TODO::スケジュール管理機能
+            //TODO::チャットボット
           } else {
             $reply_message = '開発中！！！！';
           }
@@ -112,8 +159,8 @@ foreach ($client->parseEvents() as $event) {
               'replyToken' => $event['replyToken'],
               'messages' => [
                 [
-                 'type' => 'text',
-                 'text' => $reply_message
+                  'type' => 'text',
+                  'text' => $reply_message
                 ]
               ]
           ]);
@@ -135,8 +182,8 @@ foreach ($client->parseEvents() as $event) {
               'replyToken' => $event['replyToken'],
               'messages' => [
                 [
-                 'type' => 'text',
-                 'text' => '位置情報登録オッケー！'
+                  'type' => 'text',
+                  'text' => '位置情報登録オッケー！'
                 ]
               ]
           ]);
