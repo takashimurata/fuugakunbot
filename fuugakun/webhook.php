@@ -77,6 +77,16 @@ foreach ($client->parseEvents() as $event) {
               }
             }
 
+            //Qiitaのトレンド
+          } elseif (strpos($event['message']['text'], 'トレンド') !== false) {
+            $html = file_get_contents('https://qiita.com');
+            $phpobj = phpQuery::newDocument($html);
+            $links = $phpobj["h2 > a"];
+            foreach ($links as $link) {
+              $reply_message .= pq($link)->text() . "\n";
+              $reply_message .= pq($link)->attr("href") . "\n";
+            }
+
             //Wikiの文字が含まれているか
           } elseif (strpos($event['message']['text'], 'Wiki') !== false || strpos($event['message']['text'], 'wiki') !== false) {
 
@@ -101,10 +111,10 @@ foreach ($client->parseEvents() as $event) {
           $client->replyMessage([
               'replyToken' => $event['replyToken'],
               'messages' => [
-              [
-              'type' => 'text',
-              'text' => $reply_message
-              ]
+                [
+                 'type' => 'text',
+                 'text' => $reply_message
+                ]
               ]
           ]);
           break;
@@ -124,10 +134,10 @@ foreach ($client->parseEvents() as $event) {
           $client->replyMessage([
               'replyToken' => $event['replyToken'],
               'messages' => [
-              [
-              'type' => 'text',
-              'text' => '位置情報登録オッケー！'
-              ]
+                [
+                 'type' => 'text',
+                 'text' => '位置情報登録オッケー！'
+                ]
               ]
           ]);
           break;
