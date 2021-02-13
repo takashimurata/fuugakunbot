@@ -46,6 +46,25 @@ foreach ($client->parseEvents() as $event) {
       $stmt->execute();
       break;
 
+
+    case 'postback':
+      $line_accesstoken= $event['source']['userId'];
+      $departure_time = $event['postback']['params']['datetime'];
+      $client->replyMessage([
+        'replyToken' => $event['replyToken'],
+        'messages' => [
+          [
+            'type' => 'text',
+            'text' => date('m月d日 H時i分', strtotime($departure_time)) . 'やな！任しとき！'
+          ]
+        ]
+      ]);
+      $sql = "UPDATE users SET departure_time = :departure_time WHERE line_accesstoken = :line_accesstoken";
+      $stmt = $dbh->prepare($sql);
+      $stmt->bindValue(':line_accesstoken', $line_accesstoken);
+      $stmt->bindValue(':departure_time', $departure_time);
+      $stmt->execute();
+
     case 'message':
       switch ($event['message']['type']) {
         case 'text':
@@ -132,40 +151,85 @@ foreach ($client->parseEvents() as $event) {
               $hourly = $weather_info['hourly'];
 
               //0,1,3,6,9,24時間後の天気予報を表示
-              $forecast_time = [0, 1, 3, 6, 9, 24];
+              $forecast_time = [0, 1, 3, 6, 9, 24, 47];
               foreach ($forecast_time as $i => $hour) {
                 $temp = $hourly[$hour]['temp'];
                 $weather = $hourly[$hour]['weather'][0]['description'];
+                $rain_flag = false;
+                if ($weather === '小雨' || '雨' || '雷雨') {
+                  $rain_flag = true;
+                }
+
 
                 //TODO::天気のアイコンを入れたい
                 //TODO::いつ外に出る？と聞く->出発時間前にリプライを送る。->departure_timeへ保存
-                if ($hour === 0) {
-                  $reply_message .= '今の天気は' . $weather . '、温度は' . round($temp) . '度やで！' . "\n";
-                } elseif ($hour === 24) {
-                  $reply_message .= $hour . '時間後は' . $weather . '、温度は' . round($temp) . '度やで！';
-                } else {
-                  $reply_message .= $hour . '時間後は' . $weather . '、温度は' . round($temp) . '度やで！' . "\n";
+                switch ($hour) {
+                  case 0: 
+                    $reply_message .= '今は' . $weather . '、温度は' . round($temp) . '度' . "\n";
+                    break;
+                  case 24:
+                    $reply_message .= '明日は' . $weather . '、温度は' . round($temp) . '度' . "\n";
+                    break;
+                  case 47:
+                    $reply_message .= '明後日は' . $weather . '、温度は' . round($temp) . '度！' ;
+                    break;
+                  default: 
+                    $reply_message .= $hour . '時間後は' . $weather . '、温度は' . round($temp) . '度' . "\n";
+                    break;
                 }
               }
+              
+              //「雨」のワードが入っている場合、フラグを立てる。
+              $rain_flag = false;
+              if (strpos($reply_message, '雨') !== false) {
+                $rain_flag = true;
+              }
             }
+
             //TODO::スケジュール管理機能
             //TODO::チャットボット
           } else {
             $reply_message = '開発中！！！！';
           }
 
+          //TODO::リファクタ
+          //FIXME::textにに入りきらない可能性あり
           //リプライ
-          $client->replyMessage([
-              'replyToken' => $event['replyToken'],
-              'messages' => [
-                [
-                  'type' => 'text',
-                  'text' => $reply_message
+          //雨の場合
+          if ($rain_flag === true) {
+            $client->replyMessage([
+                'replyToken' => $event['replyToken'],
+                'messages' => array(
+                  array(
+                    'type' => 'template',
+                    'altText' => 'テスト',
+                    'template' => array(
+                      'type' => 'buttons',
+                      'text' => $reply_message,
+                      'actions' => array(
+                        array(
+                          'type' => 'datetimepicker',
+                          'label' => '外出るときに傘いる？',
+                          'data' => 'datetemp',
+                          'mode' => 'datetime',
+                          )
+                        )
+                      )
+                    )
+                  )
+            ]);
+          } else {
+            $client->replyMessage([
+                'replyToken' => $event['replyToken'],
+                'messages' => [
+                  [
+                    'type' => 'text',
+                    'text' => $reply_message
+                  ]
                 ]
-              ]
-          ]);
+            ]);
+          }
           break;
-
         case 'location' && 'message':
 
           //位置情報をDBへ保存
