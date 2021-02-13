@@ -46,7 +46,6 @@ foreach ($client->parseEvents() as $event) {
       $stmt->execute();
       break;
 
-
     case 'postback':
       $line_accesstoken= $event['source']['userId'];
       $departure_time = $event['postback']['params']['datetime'];
@@ -180,7 +179,6 @@ foreach ($client->parseEvents() as $event) {
               }
               
               //「雨」のワードが入っている場合、フラグを立てる。
-              $rain_flag = false;
               if (strpos($reply_message, '雨') !== false) {
                 $rain_flag = true;
               }
