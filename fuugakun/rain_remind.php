@@ -8,8 +8,8 @@ $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
 $dotenv->load();
 
 $search_time = date("Y-m-d H:i", strtotime("+10 minute"));
-$sql = 'SELECT `line_accesstoken` FROM `users` WHERE :search_time >= `departure_time`';
-$stmt = $dbh->prepare($sql);
+$query_string = 'SELECT `line_accesstoken` FROM `users` WHERE :search_time >= `departure_time`';
+$stmt = $dbh->prepare($query_string);
 $stmt->bindValue(':search_time', $search_time);
 $stmt->execute();
 $fetch_line_accesstokens = $stmt->fetchall(PDO::FETCH_ASSOC);
@@ -27,20 +27,32 @@ $reply_message = [
 ];
 
 //TODO::リファクタ予定
-//リマインドした場合、departure_timeをNULLへ更新
+/**
+ *傘リマインドした場合、departure_timeをNULLへ更新(以下のようなquery文を作成)
+ *```sql
+ *UPDATE
+ *    `user`
+ *SET
+ *    `departure_time` = CASE
+ *        WHEN `line_accesstoken` IN ("ACCESSTOKEN[1]") THEN NULL
+ *        WHEN `line_accesstoken` IN ("ACCESSTOKEN[2]") THEN NULL
+ *    END
+ *    WHERE `line_accesstoken` IN ("ACCESSTOKEN[1]", "ACCESSTOKEN[2]")
+ *```
+ */
 if (!empty($line_accesstokens)) {
-	$update_null_conditional_branches = '';
+	$when_phrase_string = '';
 	foreach ($line_accesstokens as $line_accesstoken) {
-		$update_null_conditional_branches .= 'WHEN `line_accesstoken` = "' . $line_accesstoken .  '" THEN NULL ';
+		$when_phrase_string .= 'WHEN `line_accesstoken` IN ("' . $line_accesstoken . '") THEN NULL ';
 	}
-	$update_string = 'UPDATE `users` SET `departure_time` = CASE ' . $update_null_conditional_branches;
-	$update_to_null_sql = $update_string . ' ELSE `departure_time` END';
-	$stmt = $dbh->query($update_to_null_sql);
+	$delimited_line_accesstokens = implode('","', $line_accesstokens);
+	$query_string = 'UPDATE `users` SET `departure_time` = CASE ' . $when_phrase_string . ' END WHERE `line_accesstoken` IN ("' . $delimited_line_accesstokens . '")';
+	$stmt = $dbh->query($query_string);
 }
 
 //Curl処理
 $reply_message = json_encode($reply_message);
-$ch = curl_init('https://api.line.me/v2/bot/message/multicast');
+$ch = curl_init($_ENV["LINEAPI_MULTICAST_URL"]);
 $options = [
 	CURLOPT_CUSTOMREQUEST => 'POST',
 	CURLOPT_RETURNTRANSFER => true,
