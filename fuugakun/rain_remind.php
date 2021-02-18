@@ -1,9 +1,11 @@
 <?php
 //DB接続
-require_once('./db_connection.php');
+$db_path = __DIR__ . '/db_connection.php';
+require_once($db_path);
 
 //.envの呼び出し
-require './vendor/autoload.php';
+$vendor_path = __DIR__ . '/vendor/autoload.php';
+require $vendor_path;
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
 $dotenv->load();
 
