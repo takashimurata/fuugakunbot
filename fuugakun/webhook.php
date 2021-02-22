@@ -35,6 +35,18 @@ foreach ($client->parseEvents() as $event) {
 			$stmt->bindValue(':line_accesstoken', $line_accesstoken);
 			$stmt->execute();
 			break;
+/*
+			//line_accesstokenを取得
+			insertLineAccesstoken($event['source']['userId']);
+			function insertLineAccesstoken($line_accesstoken) {
+			require_once('./db_connection.php');
+			$query_string = 'INSERT INTO `users` (line_accesstoken) VALUES (:line_accesstoken)';
+			$stmt = $dbh->prepare($query_string);
+			$stmt->bindValue(':line_accesstoken', $line_accesstoken);
+			$stmt->execute();
+			}
+			break;
+*/
 
 		case 'unfollow':
 
@@ -77,7 +89,6 @@ foreach ($client->parseEvents() as $event) {
 					//FIXME::qiita,wikiを同時に入れると帰ってこない
 					//FIXME::!== flase 消すと通らない？
 					if (strpos($event['message']['text'], 'Qiita') !== false || strpos($event['message']['text'], 'qiita') !== false) {
-
 						//messageを2つに分ける。
 						$split_word = explode(" ", $event['message']['text'], 2);
 
@@ -86,8 +97,7 @@ foreach ($client->parseEvents() as $event) {
 
 							//初めの文字がQiitaだった場合
 							if ($split_word[0] === 'Qiita' || $split_word[0] === 'qiita') {
-								$search_word = $split_word[1];
-								$html = file_get_contents('https://qiita.com/search?sort=&q=' . $search_word);
+								$html = file_get_contents('https://qiita.com/search?sort=&q=' . $split_word[1]);
 								$phpobj = phpQuery::newDocument($html);
 								$links = $phpobj["h1 > a"];
 
@@ -98,9 +108,36 @@ foreach ($client->parseEvents() as $event) {
 								}
 							}
 						}
+/*
+	//TODO::もう少し細かくするべき？
+						$reply_message = qiitaArticleSearch($event['message']['text']);
+						function qiitaArticleSearch($search_word) {
+							//messageを2つに分ける。
+							$split_word = explode(" ", $search_word, 2);
+
+							//Qiitaのみ入れた場合のエラー制御
+							if (!empty($split_word[1])){
+
+								//初めの文字がQiitaだった場合
+								if ($split_word[0] === 'Qiita' || $split_word[0] === 'qiita') {
+									$html = file_get_contents('https://qiita.com/search?sort=&q=' . $split_word[1]);
+									$phpobj = phpQuery::newDocument($html);
+									$links = $phpobj["h1 > a"];
+
+									//配列を結合
+									foreach ($links as $link) {
+										$reply_message .= pq($link)->text() . "\n";
+										$reply_message .= 'https://qiita.com' . pq($link)->attr("href") . "\n";
+									}
+								}
+							}
+							return $reply_message;
+						}
+*/
 
 					//Qiitaのトレンド
 					} elseif (strpos($event['message']['text'], 'トレンド') !== false) {
+
 						$html = file_get_contents('https://qiita.com');
 						$phpobj = phpQuery::newDocument($html);
 						$links = $phpobj["h2 > a"];
@@ -108,13 +145,24 @@ foreach ($client->parseEvents() as $event) {
 							$reply_message .= pq($link)->text() . "\n";
 							$reply_message .= pq($link)->attr("href") . "\n";
 						}
-
+/*
+						$reply_message = qiitaTrendSearch();
+						function qiitaTrendSearch () {
+							$html = file_get_contents('https://qiita.com');
+							$phpobj = phpQuery::newDocument($html);
+							$links = $phpobj["h2 > a"];
+							foreach ($links as $link) {
+								$reply_message .= pq($link)->text() . "\n";
+								$reply_message .= pq($link)->attr("href") . "\n";
+							}
+							return $reply_message;
+						}
+ */
 					//Wikiの文字が含まれているか
 					} elseif (strpos($event['message']['text'], 'Wiki') !== false || strpos($event['message']['text'], 'wiki') !== false) {
 
 						//messageを2つに分ける。
 						$split_word = explode(" ", $event['message']['text'], 2);
-
 						//wikiのみ入れた場合のエラー制御
 						if (!empty($split_word[1])){
 
@@ -124,9 +172,28 @@ foreach ($client->parseEvents() as $event) {
 								$reply_message .= $search_word . 'をwikiで検索したよ〜' . "\n";
 								$reply_message .= 'https://ja.wikipedia.org/wiki/' . $search_word;
 							}
+						} else {
+							$reply_message = $split_word[0];
 						}
-					} elseif (strpos($event['message']['text'], '天気予報') !== false) {
 
+/*
+						$reply_message = wikiArticleSearch($split_word);
+						function wikiArticleSearch($split_word) {
+							if (!empty($split_word[1])){
+
+								//初めの文字がwikiだった場合、リプライメッセージを上書き
+								if ($split_word[0] === 'Wiki' || $split_word[0] === 'wiki') {
+									$search_word = $split_word[1];
+									$reply_message .= $search_word . 'をwikiで検索したよ〜' . "\n";
+									$reply_message .= 'https://ja.wikipedia.org/wiki/' . $search_word;
+								}
+								return $reply_message;
+							} else {
+								return $split_word[0];
+							}
+						}
+*/
+					} elseif (strpos($event['message']['text'], '天気予報') !== false) {
 						//位置情報の有無の確認
 						$line_accesstoken= $event['source']['userId'];
 						$query_string = 'SELECT latitude, longitude FROM users WHERE line_accesstoken = :line_accesstoken';
@@ -136,6 +203,20 @@ foreach ($client->parseEvents() as $event) {
 						$fetch_position = $stmt->fetch(PDO::FETCH_ASSOC);
 						$lat = $fetch_position['latitude'];
 						$lon = $fetch_position['longitude'];
+/*
+						//位置情報の有無の確認
+						list($lat, $lon) = locationCheck($event['source']['userId']);
+						function locationCheck($line_accesstoken) {
+							$query_string = 'SELECT latitude, longitude FROM users WHERE line_accesstoken = :line_accesstoken';
+							$stmt = $dbh->prepare($query_string);
+							$stmt->bindValue(':line_accesstoken', $line_accesstoken);
+							$stmt->execute();
+							$fetch_position = $stmt->fetch(PDO::FETCH_ASSOC);
+							$lat = $fetch_position['latitude'];
+							$lon = $fetch_position['longitude'];
+							return array($lat, $lon);
+						}
+*/
 
 						//位置情報登録なし
 						if ($lat === null) {
@@ -143,13 +224,22 @@ foreach ($client->parseEvents() as $event) {
 
 							//登録あり
 						} else {
-
 							//TODO::変数名CHECK
 							$weather_info_url = 'https://api.openweathermap.org/data/2.5/onecall?lat=' . $lat . '&lon=' . $lon . '&units=metric&lang=ja&appid=' . $_ENV["WEATHERTOKEN"];
 							$get_weather_info = json_decode(file_get_contents($weather_info_url), true);
 							$json_weather_info = json_encode($get_weather_info);
 							$weather_info = json_decode($json_weather_info, true);
 							$hourly = $weather_info['hourly'];
+/*
+							$hourly = getWeatherInfo($lat, $lon);
+							function getWeatherInfo ($lat, $lon) {
+							$weather_info_url = 'https://api.openweathermap.org/data/2.5/onecall?lat=' . $lat . '&lon=' . $lon . '&units=metric&lang=ja&appid=' . $_ENV["WEATHERTOKEN"];
+							$get_weather_info = json_decode(file_get_contents($weather_info_url), true);
+							$json_weather_info = json_encode($get_weather_info);
+							$weather_info = json_decode($json_weather_info, true);
+							return $weather_info['hourly'];
+							}
+*/
 
 							//0,1,3,6,9,24時間後の天気予報を表示
 							$forecast_time = [0, 1, 3, 6, 9, 24, 47];
