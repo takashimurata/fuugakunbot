@@ -27,44 +27,93 @@ $client = new LINEBotTiny($_ENV["ACCESSTOKEN"], $_ENV["CHANNELSECRET"]);
 foreach ($client->parseEvents() as $event) {
 	switch ($event['type']) {
 		case 'follow':
-
+	/*
+				//line_accesstokenを取得
+				$query_string = 'INSERT INTO `users` (line_accesstoken) VALUES (:line_accesstoken)';
+				$stmt = $dbh->prepare($query_string);
+				$line_accesstoken= $event['source']['userId'];
+				$stmt->bindValue(':line_accesstoken', $line_accesstoken);
+				$stmt->execute();
+				break;
+	 */
 			//line_accesstokenを取得
-			$query_string = 'INSERT INTO `users` (line_accesstoken) VALUES (:line_accesstoken)';
-			$stmt = $dbh->prepare($query_string);
-			$line_accesstoken= $event['source']['userId'];
-			$stmt->bindValue(':line_accesstoken', $line_accesstoken);
-			$stmt->execute();
+			function insertLineAccesstoken($line_accesstoken, $dbh) {
+				$query_string = 'INSERT INTO `users` (line_accesstoken) VALUES (:line_accesstoken)';
+				$stmt = $dbh->prepare($query_string);
+				$stmt->bindValue(':line_accesstoken', $line_accesstoken);
+				$stmt->execute();
+			}
+			insertLineAccesstoken($event['source']['userId'], $dbh);
 			break;
 
 		case 'unfollow':
 
+				/*
+				//ユーザーを削除
+				$query_string = 'DELETE FROM users WHERE line_accesstoken = :line_accesstoken';
+				$stmt = $dbh->prepare($query_string);
+				$line_accesstoken = $event['source']['userId'];
+				$stmt->bindValue(':line_accesstoken', $line_accesstoken);
+				$stmt->execute();
+				break;
+				 */
+
 			//ユーザーを削除
-			$query_string = 'DELETE FROM users WHERE line_accesstoken = :line_accesstoken';
-			$stmt = $dbh->prepare($query_string);
-			$line_accesstoken= $event['source']['userId'];
-			$stmt->bindValue(':line_accesstoken', $line_accesstoken);
-			$stmt->execute();
+			function accountDelete($line_accesstoken, $dbh) {
+				$query_string = 'DELETE FROM users WHERE line_accesstoken = :line_accesstoken';
+				$stmt = $dbh->prepare($query_string);
+				$stmt->bindValue(':line_accesstoken', $line_accesstoken);
+				$stmt->execute();
+			}
+			accountDelete($event['source']['userId'], $dbh);
 			break;
 
 		case 'postback':
-
-			//雨天時、外に出る時間を保存
-			$line_accesstoken = $event['source']['userId'];
-			$departure_time = $event['postback']['params']['datetime'];
-			$client->replyMessage([
-				'replyToken' => $event['replyToken'],
-				'messages' => [
-					[
-						'type' => 'text',
-						'text' => date('m月d日 H時i分', strtotime($departure_time)) . 'やな！任しとき！'
+	/*
+				//リプライ
+				$line_accesstoken = $event['source']['userId'];
+				$departure_time = $event['postback']['params']['datetime'];
+				$client->replyMessage([
+					'replyToken' => $event['replyToken'],
+					'messages' => [
+						[
+							'type' => 'text',
+							'text' => date('m月d日 H時i分', strtotime($departure_time)) . 'やな！任しとき！'
+						]
 					]
-				]
-			]);
-			$query_string = "UPDATE users SET departure_time = :departure_time WHERE line_accesstoken = :line_accesstoken";
-			$stmt = $dbh->prepare($query_string);
-			$stmt->bindValue(':line_accesstoken', $line_accesstoken);
-			$stmt->bindValue(':departure_time', $departure_time);
-			$stmt->execute();
+				]);
+	 */
+			//リプライ
+			function departureTimeReply($reply_token, $departure_time, $client){
+				$client->replyMessage([
+					'replyToken' => $reply_token,
+					'messages' => [
+						[
+							'type' => 'text',
+							'text' => date('m月d日 H時i分', strtotime($departure_time)) . 'やな！任しとき！'
+						]
+					]
+				]);
+			}
+			departureTimeReply($event['replyToken'], $event['postback']['params']['datetime'], $client);
+
+	/*
+				$query_string = "UPDATE users SET departure_time = :departure_time WHERE line_accesstoken = :line_accesstoken";
+				$stmt = $dbh->prepare($query_string);
+				$stmt->bindValue(':line_accesstoken', $line_accesstoken);
+				$stmt->bindValue(':departure_time', $departure_time);
+				$stmt->execute();
+	 */
+
+			//外に出る時間(departure_time)を保存
+			function saveDepartureTime($line_accesstoken, $departure_time, $dbh) {
+				$query_string = "UPDATE users SET departure_time = :departure_time WHERE line_accesstoken = :line_accesstoken";
+				$stmt = $dbh->prepare($query_string);
+				$stmt->bindValue(':line_accesstoken', $line_accesstoken);
+				$stmt->bindValue(':departure_time', $departure_time);
+				$stmt->execute();
+			}
+			saveDepartureTime($event['source']['userId'], $event['postback']['params']['datetime'], $dbh);
 
 		case 'message':
 			switch ($event['message']['type']) {
@@ -78,64 +127,137 @@ foreach ($client->parseEvents() as $event) {
 					//FIXME::!== flase 消すと通らない？
 					if (strpos($event['message']['text'], 'Qiita') !== false || strpos($event['message']['text'], 'qiita') !== false) {
 
-						//messageを2つに分ける。
-						$split_word = explode(" ", $event['message']['text'], 2);
+		/*
+								//messageを2つに分ける。
+								$split_word = explode(" ", $event['message']['text'], 2);
 
-						//Qiitaのみ入れた場合のエラー制御
-						if (!empty($split_word[1])){
+								//Qiitaのみ入れた場合のエラー制御
+								if (!empty($split_word[1])){
 
-							//初めの文字がQiitaだった場合
-							if ($split_word[0] === 'Qiita' || $split_word[0] === 'qiita') {
-								$search_word = $split_word[1];
-								$html = file_get_contents('https://qiita.com/search?sort=&q=' . $search_word);
-								$phpobj = phpQuery::newDocument($html);
-								$links = $phpobj["h1 > a"];
+									//初めの文字がQiitaだった場合
+									if ($split_word[0] === 'Qiita' || $split_word[0] === 'qiita') {
+										$html = file_get_contents('https://qiita.com/search?sort=&q=' . $split_word[1]);
+										$phpobj = phpQuery::newDocument($html);
+										$links = $phpobj["h1 > a"];
 
-								//配列を結合
-								foreach ($links as $link) {
-									$reply_message .= pq($link)->text() . "\n";
-									$reply_message .= 'https://qiita.com' . pq($link)->attr("href") . "\n";
+										//配列を結合
+										foreach ($links as $link) {
+											$reply_message .= pq($link)->text() . "\n";
+											$reply_message .= 'https://qiita.com' . pq($link)->attr("href") . "\n";
+										}
+									}
+								}
+		 */
+						//TODO::もう少し細かくするべき？
+						function qiitaArticleSearch($search_word) {
+							//messageを2つに分ける。
+							$split_word = explode(" ", $search_word, 2);
+
+							//Qiitaのみ入れた場合のエラー制御
+							if (!empty($split_word[1])){
+
+								//初めの文字がQiitaだった場合
+								if ($split_word[0] === 'Qiita' || $split_word[0] === 'qiita') {
+									$html = file_get_contents('https://qiita.com/search?sort=&q=' . $split_word[1]);
+									$phpobj = phpQuery::newDocument($html);
+									$links = $phpobj["h1 > a"];
+
+									//配列を結合
+									foreach ($links as $link) {
+										$reply_message .= pq($link)->text() . "\n";
+										$reply_message .= 'https://qiita.com' . pq($link)->attr("href") . "\n";
+									}
 								}
 							}
+							return $reply_message;
 						}
+						$reply_message = qiitaArticleSearch($event['message']['text']);
 
-					//Qiitaのトレンド
+						//Qiitaのトレンド
 					} elseif (strpos($event['message']['text'], 'トレンド') !== false) {
-						$html = file_get_contents('https://qiita.com');
-						$phpobj = phpQuery::newDocument($html);
-						$links = $phpobj["h2 > a"];
-						foreach ($links as $link) {
-							$reply_message .= pq($link)->text() . "\n";
-							$reply_message .= pq($link)->attr("href") . "\n";
+		/*
+								$html = file_get_contents('https://qiita.com');
+								$phpobj = phpQuery::newDocument($html);
+								$links = $phpobj["h2 > a"];
+								foreach ($links as $link) {
+									$reply_message .= pq($link)->text() . "\n";
+									$reply_message .= pq($link)->attr("href") . "\n";
+								}
+		 */
+						function qiitaTrendSearch () {
+							$html = file_get_contents('https://qiita.com');
+							$phpobj = phpQuery::newDocument($html);
+							$links = $phpobj["h2 > a"];
+							foreach ($links as $link) {
+								$reply_message .= pq($link)->text() . "\n";
+								$reply_message .= pq($link)->attr("href") . "\n";
+							}
+							return $reply_message;
 						}
+						$reply_message = qiitaTrendSearch();
 
-					//Wikiの文字が含まれているか
+						//Wikiの文字が含まれているか
 					} elseif (strpos($event['message']['text'], 'Wiki') !== false || strpos($event['message']['text'], 'wiki') !== false) {
 
-						//messageを2つに分ける。
-						$split_word = explode(" ", $event['message']['text'], 2);
+		/*
+								//messageを2つに分ける。
+								$split_word = explode(" ", $event['message']['text'], 2);
 
-						//wikiのみ入れた場合のエラー制御
-						if (!empty($split_word[1])){
+								//wikiのみ入れた場合のエラー制御
+								if (!empty($split_word[1])){
 
-							//初めの文字がwikiだった場合、リプライメッセージを上書き
-							if ($split_word[0] === 'Wiki' || $split_word[0] === 'wiki') {
-								$search_word = $split_word[1];
-								$reply_message .= $search_word . 'をwikiで検索したよ〜' . "\n";
-								$reply_message .= 'https://ja.wikipedia.org/wiki/' . $search_word;
+									//初めの文字がwikiだった場合、リプライメッセージを上書き
+									if ($split_word[0] === 'Wiki' || $split_word[0] === 'wiki') {
+										$search_word = $split_word[1];
+										$reply_message .= $search_word . 'をwikiで検索したよ〜' . "\n";
+										$reply_message .= 'https://ja.wikipedia.org/wiki/' . $search_word;
+									}
+								} else {
+									$reply_message = $split_word[0];
+								}
+		 */
+						function wikiArticleSearch($search_word) {
+							$split_word = explode(" ", $search_word, 2);
+							if (!empty($split_word[1])){
+
+								//初めの文字がwikiだった場合、リプライメッセージを上書き
+								if ($split_word[0] === 'Wiki' || $split_word[0] === 'wiki') {
+									$search_word = $split_word[1];
+									$reply_message .= $search_word . 'をwikiで検索したよ〜' . "\n";
+									$reply_message .= 'https://ja.wikipedia.org/wiki/' . $search_word;
+								}
+								return $reply_message;
+							} else {
+								return $split_word[0];
 							}
 						}
+						$reply_message = wikiArticleSearch($event['message']['text']);
+
 					} elseif (strpos($event['message']['text'], '天気予報') !== false) {
+		/*
+								//位置情報の有無の確認
+								$line_accesstoken= $event['source']['userId'];
+								$query_string = 'SELECT latitude, longitude FROM users WHERE line_accesstoken = :line_accesstoken';
+								$stmt = $dbh->prepare($query_string);
+								$stmt->bindValue(':line_accesstoken', $line_accesstoken);
+								$stmt->execute();
+								$fetch_position = $stmt->fetch(PDO::FETCH_ASSOC);
+								$lat = $fetch_position['latitude'];
+								$lon = $fetch_position['longitude'];
+		 */
 
 						//位置情報の有無の確認
-						$line_accesstoken= $event['source']['userId'];
-						$query_string = 'SELECT latitude, longitude FROM users WHERE line_accesstoken = :line_accesstoken';
-						$stmt = $dbh->prepare($query_string);
-						$stmt->bindValue(':line_accesstoken', $line_accesstoken);
-						$stmt->execute();
-						$fetch_position = $stmt->fetch(PDO::FETCH_ASSOC);
-						$lat = $fetch_position['latitude'];
-						$lon = $fetch_position['longitude'];
+						function locationCheck($line_accesstoken, $dbh) {
+							$query_string = 'SELECT latitude, longitude FROM users WHERE line_accesstoken = :line_accesstoken';
+							$stmt = $dbh->prepare($query_string);
+							$stmt->bindValue(':line_accesstoken', $line_accesstoken);
+							$stmt->execute();
+							$fetch_position = $stmt->fetch(PDO::FETCH_ASSOC);
+							$lat = $fetch_position['latitude'];
+							$lon = $fetch_position['longitude'];
+							return array($lat, $lon);
+						}
+						list($lat, $lon) = locationCheck($event['source']['userId'], $dbh);
 
 						//位置情報登録なし
 						if ($lat === null) {
@@ -143,27 +265,59 @@ foreach ($client->parseEvents() as $event) {
 
 							//登録あり
 						} else {
-
 							//TODO::変数名CHECK
-							$weather_info_url = 'https://api.openweathermap.org/data/2.5/onecall?lat=' . $lat . '&lon=' . $lon . '&units=metric&lang=ja&appid=' . $_ENV["WEATHERTOKEN"];
-							$get_weather_info = json_decode(file_get_contents($weather_info_url), true);
-							$json_weather_info = json_encode($get_weather_info);
-							$weather_info = json_decode($json_weather_info, true);
-							$hourly = $weather_info['hourly'];
+		/*
+									$weather_info_url = 'https://api.openweathermap.org/data/2.5/onecall?lat=' . $lat . '&lon=' . $lon . '&units=metric&lang=ja&appid=' . $_ENV["WEATHERTOKEN"];
+									$get_weather_info = json_decode(file_get_contents($weather_info_url), true);
+									$json_weather_info = json_encode($get_weather_info);
+									$weather_info = json_decode($json_weather_info, true);
+									$hourly = $weather_info['hourly'];
+									$hourly = getWeatherInfo($lat, $lon);
+		 */
+							function getWeatherInfo($lat, $lon) {
+								$weather_info_url = 'https://api.openweathermap.org/data/2.5/onecall?lat=' . $lat . '&lon=' . $lon . '&units=metric&lang=ja&appid=' . $_ENV["WEATHERTOKEN"];
+								$get_weather_info = json_decode(file_get_contents($weather_info_url), true);
+								$json_weather_info = json_encode($get_weather_info);
+								$weather_info = json_decode($json_weather_info, true);
+								return $weather_info['hourly'];
+							}
+							$hourly = getWeatherInfo($lat, $lon);
 
+		/*
+									//0,1,3,6,9,24時間後の天気予報を表示
+									$forecast_time = [0, 1, 3, 6, 9, 24, 47];
+									foreach ($forecast_time as $i => $hour) {
+										$temp = $hourly[$hour]['temp'];
+										$weather = $hourly[$hour]['weather'][0]['description'];
+
+										//TODO::天気のアイコンを入れたい
+										//TODO::いつ外に出る？と聞く->出発時間前にリプライを送る。->departure_timeへ保存
+										switch ($hour) {
+											case 0:
+												$reply_message .= '今は' . $weather . '、温度は' . round($temp) . '度' . "\n";
+												break;
+											case 24:
+												$reply_message .= '明日は' . $weather . '、温度は' . round($temp) . '度' . "\n";
+												break;
+											case 47:
+												$reply_message .= '明後日は' . $weather . '、温度は' . round($temp) . '度！' ;
+												break;
+											default:
+												$reply_message .= $hour . '時間後は' . $weather . '、温度は' . round($temp) . '度' . "\n";
+												break;
+										}
+									}
+		 */
 							//0,1,3,6,9,24時間後の天気予報を表示
-							$forecast_time = [0, 1, 3, 6, 9, 24, 47];
-							foreach ($forecast_time as $i => $hour) {
-								$temp = $hourly[$hour]['temp'];
-								$weather = $hourly[$hour]['weather'][0]['description'];
-								$rain_flag = false;
-								if ($weather === '小雨' || '雨' || '雷雨') {
-									$rain_flag = true;
-								}
+							function weatherForecastReply($hourly) {
+								$forecast_time = [0, 1, 3, 6, 9, 24, 47];
+								foreach ($forecast_time as $i => $hour) {
+									$temp = $hourly[$hour]['temp'];
+									$weather = $hourly[$hour]['weather'][0]['description'];
 
-								//TODO::天気のアイコンを入れたい
-								//TODO::いつ外に出る？と聞く->出発時間前にリプライを送る。->departure_timeへ保存
-								switch ($hour) {
+									//TODO::天気のアイコンを入れたい
+									//TODO::いつ外に出る？と聞く->出発時間前にリプライを送る。->departure_timeへ保存
+									switch ($hour) {
 									case 0:
 										$reply_message .= '今は' . $weather . '、温度は' . round($temp) . '度' . "\n";
 										break;
@@ -176,13 +330,22 @@ foreach ($client->parseEvents() as $event) {
 									default:
 										$reply_message .= $hour . '時間後は' . $weather . '、温度は' . round($temp) . '度' . "\n";
 										break;
+									}
 								}
+								return $reply_message;
 							}
+							$reply_message = weatherForecastReply($hourly);
 
 							//「雨」のワードが入っている場合、フラグを立てる。
-							if (strpos($reply_message, '雨') !== false) {
-								$rain_flag = true;
+							//TODO::完成後はfalseへ
+							function rainFlagCheck ($reply_message){
+								if (strpos($reply_message, '雨') !== false) {
+									return true;
+								}
+								//TODO::デバック後はfalseへ
+								return true;
 							}
+							$rain_flag = rainFlagCheck($reply_message);
 						}
 					} else {
 						require_once('./reply_chat.php');
@@ -192,51 +355,112 @@ foreach ($client->parseEvents() as $event) {
 					//FIXME::textにに入りきらない可能性あり
 					//雨の場合
 					if ($rain_flag === true) {
-						$client->replyMessage([
-							'replyToken' => $event['replyToken'],
-							'messages' => array(
-								array(
-									'type' => 'template',
-									'altText' => 'テスト',
-									'template' => array(
-										'type' => 'buttons',
-										'text' => $reply_message,
-										'actions' => array(
-											array(
-												'type' => 'datetimepicker',
-												'label' => '外出るときに傘いる？',
-												'data' => 'datetemp',
-												'mode' => 'datetime',
+		/*
+								$client->replyMessage([
+									'replyToken' => $event['replyToken'],
+									'messages' => array(
+										array(
+											'type' => 'template',
+											'altText' => 'テスト',
+											'template' => array(
+												'type' => 'buttons',
+												'text' => $reply_message,
+												'actions' => array(
+													array(
+														'type' => 'datetimepicker',
+														'label' => '外出るときに傘いる？',
+														'data' => 'datetemp',
+														'mode' => 'datetime',
+													)
+												)
+											)
+										)
+									)
+								]);
+		 */
+
+						function checkNeedsUmbrella($client, $reply_token, $reply_message) {
+							$client->replyMessage([
+								'replyToken' => $reply_token,
+								'messages' => array(
+									array(
+										'type' => 'template',
+										'altText' => 'テスト',
+										'template' => array(
+											'type' => 'buttons',
+											'text' => $reply_message,
+											'actions' => array(
+												array(
+													'type' => 'datetimepicker',
+													'label' => '外出るときに傘いる？',
+													'data' => 'datetemp',
+													'mode' => 'datetime',
+												)
 											)
 										)
 									)
 								)
-							)
-						]);
-					} else {
-						$client->replyMessage([
-							'replyToken' => $event['replyToken'],
-							'messages' => [
-								[
-									'type' => 'text',
-									'text' => $reply_message
-								]
-							]
-						]);
-					}
-					break;
-				case 'location' && 'message':
+							]);
+						}
+						checkNeedsUmbrella($client, $event['replyToken'], $reply_message);
 
-					//位置情報をDBへ保存
-					$query_string = 'UPDATE users SET latitude = :lat, longitude = :lon WHERE line_accesstoken = :line_accesstoken';
-					$stmt = $dbh->prepare($query_string);
-					$line_accesstoken= $event['source']['userId'];
-					$lat = $event['message']['latitude'];  //緯度
-					$lon = $event['message']['longitude'];//経度
-					$stmt->bindValue(':line_accesstoken', $line_accesstoken);
-					$stmt->bindValue(':lat', $lat);
-					$stmt->bindValue(':lon', $lon);
-					$stmt->execute();
+					} else {
+		/*
+								$client->replyMessage([
+									'replyToken' => $event['replyToken'],
+									'messages' => [
+										[
+											'type' => 'text',
+											'text' => $reply_message
+										]
+									]
+								]);
+								break;
+		 */
+
+						function reply($client, $reply_token, $reply_message) {
+							$client->replyMessage([
+								'replyToken' => $reply_token,
+								'messages' => [
+									[
+										'type' => 'text',
+										'text' => $reply_message
+									]
+								]
+							]);
+						}
+						reply($client, $event['replyToken'], $reply_message);
+						break;
+					}
+				case 'location' && 'message':
+		/*
+							//位置情報をDBへ保存
+							$query_string = 'UPDATE users SET latitude = :lat, longitude = :lon WHERE line_accesstoken = :line_accesstoken';
+							$stmt = $dbh->prepare($query_string);
+							$line_accesstoken= $event['source']['userId'];
+							$lat = $event['message']['latitude'];  //緯度
+							$lon = $event['message']['longitude'];//経度
+							$stmt->bindValue(':line_accesstoken', $line_accesstoken);
+							$stmt->bindValue(':lat', $lat);
+							$stmt->bindValue(':lon', $lon);
+							$stmt->execute();
+		 */
+
+					function saveLocation($dbh, $event) {
+						//位置情報をDBへ保存
+						$query_string = 'UPDATE users SET latitude = :lat, longitude = :lon WHERE line_accesstoken = :line_accesstoken';
+						$stmt = $dbh->prepare($query_string);
+						$line_accesstoken= $event['source']['userId'];
+						$lat = $event['message']['latitude'];  //緯度
+						$lon = $event['message']['longitude'];//経度
+						$stmt->bindValue(':line_accesstoken', $line_accesstoken);
+						$stmt->bindValue(':lat', $lat);
+						$stmt->bindValue(':lon', $lon);
+						$stmt->execute();
+					}
+					saveLocation($dbh, $event);
+
+					//TODO::関数化未実装
 					$client->replyMessage([
 						'replyToken' => $event['replyToken'],
 						'messages' => [
