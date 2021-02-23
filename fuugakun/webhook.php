@@ -62,82 +62,20 @@ foreach ($client->parseEvents() as $event) {
 		case 'message':
 			switch ($event['message']['type']) {
 				case 'text':
-					//文字分割
 					//初期化
 					$reply_message = '';
 
 					//Qiitaの文字が含まれているか。
-					//FIXME::qiita,wikiを同時に入れると帰ってこない
-					//FIXME::!== flase 消すと通らない？
 					if (strpos($event['message']['text'], 'Qiita') !== false || strpos($event['message']['text'], 'qiita') !== false) {
 
-		/*
-								//messageを2つに分ける。
-								$split_word = explode(" ", $event['message']['text'], 2);
-
-								//Qiitaのみ入れた場合のエラー制御
-								if (!empty($split_word[1])){
-
-									//初めの文字がQiitaだった場合
-									if ($split_word[0] === 'Qiita' || $split_word[0] === 'qiita') {
-										$html = file_get_contents('https://qiita.com/search?sort=&q=' . $split_word[1]);
-										$phpobj = phpQuery::newDocument($html);
-										$links = $phpobj["h1 > a"];
-
-										//配列を結合
-										foreach ($links as $link) {
-											$reply_message .= pq($link)->text() . "\n";
-											$reply_message .= 'https://qiita.com' . pq($link)->attr("href") . "\n";
-										}
-									}
-								}
-		 */
-						//TODO::もう少し細かくするべき？
-						function qiitaArticleSearch($search_word) {
-							//messageを2つに分ける。
-							$split_word = explode(" ", $search_word, 2);
-
-							//Qiitaのみ入れた場合のエラー制御
-							if (!empty($split_word[1])){
-
-								//初めの文字がQiitaだった場合
-								if ($split_word[0] === 'Qiita' || $split_word[0] === 'qiita') {
-									$html = file_get_contents('https://qiita.com/search?sort=&q=' . $split_word[1]);
-									$phpobj = phpQuery::newDocument($html);
-									$links = $phpobj["h1 > a"];
-
-									//配列を結合
-									foreach ($links as $link) {
-										$reply_message .= pq($link)->text() . "\n";
-										$reply_message .= 'https://qiita.com' . pq($link)->attr("href") . "\n";
-									}
-								}
-							}
-							return $reply_message;
-						}
+						//qiitaの記事をスクレイピングし、reply_messageへ入れる。
+						require_once('./fetch_qiita_article.php');
 						$reply_message = qiitaArticleSearch($event['message']['text']);
 
 						//Qiitaのトレンド
 					} elseif (strpos($event['message']['text'], 'トレンド') !== false) {
-		/*
-								$html = file_get_contents('https://qiita.com');
-								$phpobj = phpQuery::newDocument($html);
-								$links = $phpobj["h2 > a"];
-								foreach ($links as $link) {
-									$reply_message .= pq($link)->text() . "\n";
-									$reply_message .= pq($link)->attr("href") . "\n";
-								}
-		 */
-						function qiitaTrendSearch () {
-							$html = file_get_contents('https://qiita.com');
-							$phpobj = phpQuery::newDocument($html);
-							$links = $phpobj["h2 > a"];
-							foreach ($links as $link) {
-								$reply_message .= pq($link)->text() . "\n";
-								$reply_message .= pq($link)->attr("href") . "\n";
-							}
-							return $reply_message;
-						}
+						//qiitaのトレンドを取得し、reply_messageへ入れる。
+						require_once('./fetch_qiita_article.php');
 						$reply_message = qiitaTrendSearch();
 
 						//Wikiの文字が含まれているか
