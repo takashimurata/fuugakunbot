@@ -27,62 +27,19 @@ $client = new LINEBotTiny($_ENV["ACCESSTOKEN"], $_ENV["CHANNELSECRET"]);
 foreach ($client->parseEvents() as $event) {
 	switch ($event['type']) {
 		case 'follow':
-	/*
-				//line_accesstokenを取得
-				$query_string = 'INSERT INTO `users` (line_accesstoken) VALUES (:line_accesstoken)';
-				$stmt = $dbh->prepare($query_string);
-				$line_accesstoken= $event['source']['userId'];
-				$stmt->bindValue(':line_accesstoken', $line_accesstoken);
-				$stmt->execute();
-				break;
-	 */
 			//line_accesstokenを取得
-			function insertLineAccesstoken($line_accesstoken, $dbh) {
-				$query_string = 'INSERT INTO `users` (line_accesstoken) VALUES (:line_accesstoken)';
-				$stmt = $dbh->prepare($query_string);
-				$stmt->bindValue(':line_accesstoken', $line_accesstoken);
-				$stmt->execute();
-			}
+			require_once('./db_function.php');
 			insertLineAccesstoken($event['source']['userId'], $dbh);
 			break;
 
 		case 'unfollow':
-
-				/*
-				//ユーザーを削除
-				$query_string = 'DELETE FROM users WHERE line_accesstoken = :line_accesstoken';
-				$stmt = $dbh->prepare($query_string);
-				$line_accesstoken = $event['source']['userId'];
-				$stmt->bindValue(':line_accesstoken', $line_accesstoken);
-				$stmt->execute();
-				break;
-				 */
-
 			//ユーザーを削除
-			function accountDelete($line_accesstoken, $dbh) {
-				$query_string = 'DELETE FROM users WHERE line_accesstoken = :line_accesstoken';
-				$stmt = $dbh->prepare($query_string);
-				$stmt->bindValue(':line_accesstoken', $line_accesstoken);
-				$stmt->execute();
-			}
+			require_once('./db_function.php');
 			accountDelete($event['source']['userId'], $dbh);
 			break;
 
 		case 'postback':
-	/*
-				//リプライ
-				$line_accesstoken = $event['source']['userId'];
-				$departure_time = $event['postback']['params']['datetime'];
-				$client->replyMessage([
-					'replyToken' => $event['replyToken'],
-					'messages' => [
-						[
-							'type' => 'text',
-							'text' => date('m月d日 H時i分', strtotime($departure_time)) . 'やな！任しとき！'
-						]
-					]
-				]);
-	 */
+
 			//リプライ
 			function departureTimeReply($reply_token, $departure_time, $client){
 				$client->replyMessage([
@@ -97,23 +54,10 @@ foreach ($client->parseEvents() as $event) {
 			}
 			departureTimeReply($event['replyToken'], $event['postback']['params']['datetime'], $client);
 
-	/*
-				$query_string = "UPDATE users SET departure_time = :departure_time WHERE line_accesstoken = :line_accesstoken";
-				$stmt = $dbh->prepare($query_string);
-				$stmt->bindValue(':line_accesstoken', $line_accesstoken);
-				$stmt->bindValue(':departure_time', $departure_time);
-				$stmt->execute();
-	 */
-
 			//外に出る時間(departure_time)を保存
-			function saveDepartureTime($line_accesstoken, $departure_time, $dbh) {
-				$query_string = "UPDATE users SET departure_time = :departure_time WHERE line_accesstoken = :line_accesstoken";
-				$stmt = $dbh->prepare($query_string);
-				$stmt->bindValue(':line_accesstoken', $line_accesstoken);
-				$stmt->bindValue(':departure_time', $departure_time);
-				$stmt->execute();
-			}
+			require_once('./db_function.php');
 			saveDepartureTime($event['source']['userId'], $event['postback']['params']['datetime'], $dbh);
+			break;
 
 		case 'message':
 			switch ($event['message']['type']) {
@@ -234,29 +178,9 @@ foreach ($client->parseEvents() as $event) {
 						$reply_message = wikiArticleSearch($event['message']['text']);
 
 					} elseif (strpos($event['message']['text'], '天気予報') !== false) {
-		/*
-								//位置情報の有無の確認
-								$line_accesstoken= $event['source']['userId'];
-								$query_string = 'SELECT latitude, longitude FROM users WHERE line_accesstoken = :line_accesstoken';
-								$stmt = $dbh->prepare($query_string);
-								$stmt->bindValue(':line_accesstoken', $line_accesstoken);
-								$stmt->execute();
-								$fetch_position = $stmt->fetch(PDO::FETCH_ASSOC);
-								$lat = $fetch_position['latitude'];
-								$lon = $fetch_position['longitude'];
-		 */
 
-						//位置情報の有無の確認
-						function locationCheck($line_accesstoken, $dbh) {
-							$query_string = 'SELECT latitude, longitude FROM users WHERE line_accesstoken = :line_accesstoken';
-							$stmt = $dbh->prepare($query_string);
-							$stmt->bindValue(':line_accesstoken', $line_accesstoken);
-							$stmt->execute();
-							$fetch_position = $stmt->fetch(PDO::FETCH_ASSOC);
-							$lat = $fetch_position['latitude'];
-							$lon = $fetch_position['longitude'];
-							return array($lat, $lon);
-						}
+
+						require_once('./db_function.php');
 						list($lat, $lon) = locationCheck($event['source']['userId'], $dbh);
 
 						//位置情報登録なし
@@ -433,31 +357,9 @@ foreach ($client->parseEvents() as $event) {
 						break;
 					}
 				case 'location' && 'message':
-		/*
-							//位置情報をDBへ保存
-							$query_string = 'UPDATE users SET latitude = :lat, longitude = :lon WHERE line_accesstoken = :line_accesstoken';
-							$stmt = $dbh->prepare($query_string);
-							$line_accesstoken= $event['source']['userId'];
-							$lat = $event['message']['latitude'];  //緯度
-							$lon = $event['message']['longitude'];//経度
-							$stmt->bindValue(':line_accesstoken', $line_accesstoken);
-							$stmt->bindValue(':lat', $lat);
-							$stmt->bindValue(':lon', $lon);
-							$stmt->execute();
-		 */
 
-					function saveLocation($dbh, $event) {
-						//位置情報をDBへ保存
-						$query_string = 'UPDATE users SET latitude = :lat, longitude = :lon WHERE line_accesstoken = :line_accesstoken';
-						$stmt = $dbh->prepare($query_string);
-						$line_accesstoken= $event['source']['userId'];
-						$lat = $event['message']['latitude'];  //緯度
-						$lon = $event['message']['longitude'];//経度
-						$stmt->bindValue(':line_accesstoken', $line_accesstoken);
-						$stmt->bindValue(':lat', $lat);
-						$stmt->bindValue(':lon', $lon);
-						$stmt->execute();
-					}
+					require_once('./db_function.php');
+					//位置情報をDBへ保存
 					saveLocation($dbh, $event);
 
 					//TODO::関数化未実装
