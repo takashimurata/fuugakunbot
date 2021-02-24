@@ -1,5 +1,6 @@
 <?php
 
+//Qiitaの記事の検索
 function qiitaArticleSearch($search_word) {
 	//messageを2つに分ける。
 	$split_word = explode(" ", $search_word, 2);
@@ -23,6 +24,7 @@ function qiitaArticleSearch($search_word) {
 	return $reply_message;
 }
 
+//Qiitaのトレンドを検索
 function qiitaTrendSearch () {
 	$html = file_get_contents('https://qiita.com');
 	$phpobj = phpQuery::newDocument($html);

@@ -1,6 +1,7 @@
 <?php
 require_once('./db_connection.php');
-//line_accesstokenを取得
+
+//line_accesstokenを保存
 function insertLineAccesstoken($line_accesstoken, $dbh) {
 	$query_string = 'INSERT INTO `users` (line_accesstoken) VALUES (:line_accesstoken)';
 	$stmt = $dbh->prepare($query_string);
@@ -49,13 +50,3 @@ function saveLocation($dbh, $event) {
 	$stmt->bindValue(':lon', $lon);
 	$stmt->execute();
 }
-
-
-
-
-
-
-
-
-
-

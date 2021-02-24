@@ -42,6 +42,7 @@ $reply_message = [
  *    WHERE `line_accesstoken` IN ("ACCESSTOKEN[1]", "ACCESSTOKEN[2]")
  *```
  */
+
 if (!empty($line_accesstokens)) {
 	$when_phrase_string = '';
 	foreach ($line_accesstokens as $line_accesstoken) {

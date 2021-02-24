@@ -16,7 +16,6 @@
  */
 
 require_once('./LINEBotTiny.php');
-require_once('./db_connection.php');
 
 //.envの呼び出し
 require './vendor/autoload.php';
@@ -26,295 +25,97 @@ $dotenv->load();
 $client = new LINEBotTiny($_ENV["ACCESSTOKEN"], $_ENV["CHANNELSECRET"]);
 foreach ($client->parseEvents() as $event) {
 	switch ($event['type']) {
+
+		//ユーザー登録
 		case 'follow':
-			//line_accesstokenを取得
 			require_once('./db_function.php');
 			insertLineAccesstoken($event['source']['userId'], $dbh);
 			break;
 
+		//ユーザーを削除
 		case 'unfollow':
-			//ユーザーを削除
 			require_once('./db_function.php');
 			accountDelete($event['source']['userId'], $dbh);
 			break;
 
+		//外に出る時間(departure_time)を保存し、リプライ
 		case 'postback':
-
-			//リプライ
-			function departureTimeReply($reply_token, $departure_time, $client){
-				$client->replyMessage([
-					'replyToken' => $reply_token,
-					'messages' => [
-						[
-							'type' => 'text',
-							'text' => date('m月d日 H時i分', strtotime($departure_time)) . 'やな！任しとき！'
-						]
-					]
-				]);
-			}
-			departureTimeReply($event['replyToken'], $event['postback']['params']['datetime'], $client);
-
-			//外に出る時間(departure_time)を保存
 			require_once('./db_function.php');
+			require_once('./reply_function.php');
+			$reply_message = date('m月d日 H時i分', strtotime($event['postback']['params']['datetime'])) . 'やな！任しとき！';
 			saveDepartureTime($event['source']['userId'], $event['postback']['params']['datetime'], $dbh);
+			reply($event['replyToken'], $reply_message, $client);
 			break;
 
+		//メッセージが来た場合
 		case 'message':
 			switch ($event['message']['type']) {
 				case 'text':
 					//初期化
 					$reply_message = '';
 
-					//Qiitaの文字が含まれているか。
+					//Qiita
 					if (strpos($event['message']['text'], 'Qiita') !== false || strpos($event['message']['text'], 'qiita') !== false) {
-
-						//qiitaの記事をスクレイピングし、reply_messageへ入れる。
+						//qiitaの記事をスクレイピング
 						require_once('./fetch_qiita_article.php');
 						$reply_message = qiitaArticleSearch($event['message']['text']);
 
-						//Qiitaのトレンド
+					//Qiitaのトレンド
 					} elseif (strpos($event['message']['text'], 'トレンド') !== false) {
-						//qiitaのトレンドを取得し、reply_messageへ入れる。
 						require_once('./fetch_qiita_article.php');
 						$reply_message = qiitaTrendSearch();
 
-						//Wikiの文字が含まれているか
+					//Wiki
 					} elseif (strpos($event['message']['text'], 'Wiki') !== false || strpos($event['message']['text'], 'wiki') !== false) {
-
-		/*
-								//messageを2つに分ける。
-								$split_word = explode(" ", $event['message']['text'], 2);
-
-								//wikiのみ入れた場合のエラー制御
-								if (!empty($split_word[1])){
-
-									//初めの文字がwikiだった場合、リプライメッセージを上書き
-									if ($split_word[0] === 'Wiki' || $split_word[0] === 'wiki') {
-										$search_word = $split_word[1];
-										$reply_message .= $search_word . 'をwikiで検索したよ〜' . "\n";
-										$reply_message .= 'https://ja.wikipedia.org/wiki/' . $search_word;
-									}
-								} else {
-									$reply_message = $split_word[0];
-								}
-		 */
-						function wikiArticleSearch($search_word) {
-							$split_word = explode(" ", $search_word, 2);
-							if (!empty($split_word[1])){
-
-								//初めの文字がwikiだった場合、リプライメッセージを上書き
-								if ($split_word[0] === 'Wiki' || $split_word[0] === 'wiki') {
-									$search_word = $split_word[1];
-									$reply_message .= $search_word . 'をwikiで検索したよ〜' . "\n";
-									$reply_message .= 'https://ja.wikipedia.org/wiki/' . $search_word;
-								}
-								return $reply_message;
-							} else {
-								return $split_word[0];
-							}
-						}
+						require_once('./wiki_create_url.php');
 						$reply_message = wikiArticleSearch($event['message']['text']);
 
+					//FIXME::何故か「天気予報」を入れると、DBの位置情報が消える。
+					//天気予報
 					} elseif (strpos($event['message']['text'], '天気予報') !== false) {
-
-
 						require_once('./db_function.php');
 						list($lat, $lon) = locationCheck($event['source']['userId'], $dbh);
 
-						//位置情報登録なし
 						if ($lat === null) {
 							$reply_message = 'どこの天気予報したらいいんや！下の＋から位置情報を送って！';
 
-							//登録あり
+						//天気予報を表示
 						} else {
-							//TODO::変数名CHECK
-		/*
-									$weather_info_url = 'https://api.openweathermap.org/data/2.5/onecall?lat=' . $lat . '&lon=' . $lon . '&units=metric&lang=ja&appid=' . $_ENV["WEATHERTOKEN"];
-									$get_weather_info = json_decode(file_get_contents($weather_info_url), true);
-									$json_weather_info = json_encode($get_weather_info);
-									$weather_info = json_decode($json_weather_info, true);
-									$hourly = $weather_info['hourly'];
-									$hourly = getWeatherInfo($lat, $lon);
-		 */
-							function getWeatherInfo($lat, $lon) {
-								$weather_info_url = 'https://api.openweathermap.org/data/2.5/onecall?lat=' . $lat . '&lon=' . $lon . '&units=metric&lang=ja&appid=' . $_ENV["WEATHERTOKEN"];
-								$get_weather_info = json_decode(file_get_contents($weather_info_url), true);
-								$json_weather_info = json_encode($get_weather_info);
-								$weather_info = json_decode($json_weather_info, true);
-								return $weather_info['hourly'];
-							}
+							require_once('./weather_forecast_functions.php');
 							$hourly = getWeatherInfo($lat, $lon);
-
-		/*
-									//0,1,3,6,9,24時間後の天気予報を表示
-									$forecast_time = [0, 1, 3, 6, 9, 24, 47];
-									foreach ($forecast_time as $i => $hour) {
-										$temp = $hourly[$hour]['temp'];
-										$weather = $hourly[$hour]['weather'][0]['description'];
-
-										//TODO::天気のアイコンを入れたい
-										//TODO::いつ外に出る？と聞く->出発時間前にリプライを送る。->departure_timeへ保存
-										switch ($hour) {
-											case 0:
-												$reply_message .= '今は' . $weather . '、温度は' . round($temp) . '度' . "\n";
-												break;
-											case 24:
-												$reply_message .= '明日は' . $weather . '、温度は' . round($temp) . '度' . "\n";
-												break;
-											case 47:
-												$reply_message .= '明後日は' . $weather . '、温度は' . round($temp) . '度！' ;
-												break;
-											default:
-												$reply_message .= $hour . '時間後は' . $weather . '、温度は' . round($temp) . '度' . "\n";
-												break;
-										}
-									}
-		 */
-							//0,1,3,6,9,24時間後の天気予報を表示
-							function weatherForecastReply($hourly) {
-								$forecast_time = [0, 1, 3, 6, 9, 24, 47];
-								foreach ($forecast_time as $i => $hour) {
-									$temp = $hourly[$hour]['temp'];
-									$weather = $hourly[$hour]['weather'][0]['description'];
-
-									//TODO::天気のアイコンを入れたい
-									//TODO::いつ外に出る？と聞く->出発時間前にリプライを送る。->departure_timeへ保存
-									switch ($hour) {
-									case 0:
-										$reply_message .= '今は' . $weather . '、温度は' . round($temp) . '度' . "\n";
-										break;
-									case 24:
-										$reply_message .= '明日は' . $weather . '、温度は' . round($temp) . '度' . "\n";
-										break;
-									case 47:
-										$reply_message .= '明後日は' . $weather . '、温度は' . round($temp) . '度！' ;
-										break;
-									default:
-										$reply_message .= $hour . '時間後は' . $weather . '、温度は' . round($temp) . '度' . "\n";
-										break;
-									}
-								}
-								return $reply_message;
-							}
 							$reply_message = weatherForecastReply($hourly);
-
-							//「雨」のワードが入っている場合、フラグを立てる。
-							//TODO::完成後はfalseへ
-							function rainFlagCheck ($reply_message){
-								if (strpos($reply_message, '雨') !== false) {
-									return true;
-								}
-								//TODO::デバック後はfalseへ
-								return true;
-							}
-							$rain_flag = rainFlagCheck($reply_message);
+							$rain_flag = rainCheck($reply_message);
 						}
+
 					} else {
 						require_once('./reply_chat.php');
 					}
 
-					//TODO::リファクタ
-					//FIXME::textにに入りきらない可能性あり
-					//雨の場合
+					//雨の場合,傘が必要かリプライ
 					if ($rain_flag === true) {
-		/*
-								$client->replyMessage([
-									'replyToken' => $event['replyToken'],
-									'messages' => array(
-										array(
-											'type' => 'template',
-											'altText' => 'テスト',
-											'template' => array(
-												'type' => 'buttons',
-												'text' => $reply_message,
-												'actions' => array(
-													array(
-														'type' => 'datetimepicker',
-														'label' => '外出るときに傘いる？',
-														'data' => 'datetemp',
-														'mode' => 'datetime',
-													)
-												)
-											)
-										)
-									)
-								]);
-		 */
-
-						function checkNeedsUmbrella($client, $reply_token, $reply_message) {
-							$client->replyMessage([
-								'replyToken' => $reply_token,
-								'messages' => array(
-									array(
-										'type' => 'template',
-										'altText' => 'テスト',
-										'template' => array(
-											'type' => 'buttons',
-											'text' => $reply_message,
-											'actions' => array(
-												array(
-													'type' => 'datetimepicker',
-													'label' => '外出るときに傘いる？',
-													'data' => 'datetemp',
-													'mode' => 'datetime',
-												)
-											)
-										)
-									)
-								)
-							]);
-						}
 						checkNeedsUmbrella($client, $event['replyToken'], $reply_message);
 
 					} else {
-		/*
-								$client->replyMessage([
-									'replyToken' => $event['replyToken'],
-									'messages' => [
-										[
-											'type' => 'text',
-											'text' => $reply_message
-										]
-									]
-								]);
-								break;
-		 */
-
-						function reply($client, $reply_token, $reply_message) {
-							$client->replyMessage([
-								'replyToken' => $reply_token,
-								'messages' => [
-									[
-										'type' => 'text',
-										'text' => $reply_message
-									]
-								]
-							]);
-						}
-						reply($client, $event['replyToken'], $reply_message);
+						require_once('./reply_function.php');
+						reply($event['replyToken'], $reply_message, $client);
 						break;
 					}
+
+				//位置情報をDBへ保存
 				case 'location' && 'message':
-
 					require_once('./db_function.php');
-					//位置情報をDBへ保存
+					require_once('./reply_function.php');
+					$reply_message = '位置情報オッケー！';
 					saveLocation($dbh, $event);
-
-					//TODO::関数化未実装
-					$client->replyMessage([
-						'replyToken' => $event['replyToken'],
-						'messages' => [
-							[
-								'type' => 'text',
-								'text' => '位置情報登録オッケー！'
-							]
-						]
-					]);
+					reply($event['replyToken'], $reply_message, $client);
 					break;
 				default:
 					error_log('Unsupported message type: ' . $event['message']['type']);
 					break;
-		}
+			}
+		default:
+			error_log('Unsupported message type: ' . $event['message']['type']);
+			break;
 	}
 };
 ?>
