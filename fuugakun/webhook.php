@@ -15,17 +15,17 @@
  * under the License.
  */
 
-require_once('./LINEBotTiny.php');
-require_once('./query.php');
-require_once('./fetch_qiita_article.php');
-require_once('./wiki_create_url.php');
-require_once('./reply_function.php');
-require_once('./weather_forecast_functions.php');
-
 //.envの呼び出し
 require './vendor/autoload.php';
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
 $dotenv->load();
+
+require_once('./LINEBotTiny.php');
+require_once('./mysql/query.php');
+require_once('./fetch_qiita_article.php');
+require_once('./wiki_create_url.php');
+require_once('./weather_forecast_functions.php');
+require_once('./reply_function.php');
 
 $client = new LINEBotTiny($_ENV["ACCESSTOKEN"], $_ENV["CHANNELSECRET"]);
 foreach ($client->parseEvents() as $event) {
@@ -55,7 +55,7 @@ foreach ($client->parseEvents() as $event) {
 					//初期化
 					$reply_message = '';
 
-					//Qiita
+					//Qiitaの記事を文字検索
 					if (strpos($event['message']['text'], 'Qiita') !== false || strpos($event['message']['text'], 'qiita') !== false) {
 
 						//qiitaの記事をスクレイピング
@@ -65,20 +65,20 @@ foreach ($client->parseEvents() as $event) {
 					} elseif (strpos($event['message']['text'], 'トレンド') !== false) {
 						$reply_message = qiitaTrendSearch();
 
-					//Wiki
+					//Wiki記事を検索
 					} elseif (strpos($event['message']['text'], 'Wiki') !== false || strpos($event['message']['text'], 'wiki') !== false) {
 						$reply_message = wikiArticleSearch($event['message']['text']);
 
 					//天気予報
 					} elseif (strpos($event['message']['text'], '天気予報') !== false) {
-						list($lat, $lon) = isValidLocation($event['source']['userId'], $dbh);
+						list($latitude, $longitude) = isValidLocation($event['source']['userId'], $dbh);
 
-						if ($lat === null) {
+						if ($latitude === null) {
 							$reply_message = 'どこの天気予報したらいいんや！下の＋から位置情報を送って！';
 
 						//天気予報を表示
 						} else {
-							$hourly = getWeatherInfo($lat, $lon);
+							$hourly = getWeatherInfo($latitude, $longitude);
 							$reply_message = weatherForecastReply($hourly);
 							$rain_flag = rainCheck($reply_message);
 							if ($rain_flag === true) {
@@ -86,6 +86,8 @@ foreach ($client->parseEvents() as $event) {
 							}
 						}
 					} else {
+
+						//メッセージで弾かれたものは全てチャットへ
 						require_once('./reply_chat.php');
 					}
 

@@ -1,5 +1,5 @@
 <?php
-require_once('./connect.php');
+require_once('./mysql/connect.php');
 
 //line_accesstokenを保存
 function saveLineAccesstoken($line_accesstoken, $dbh) {
@@ -33,20 +33,20 @@ function isValidLocation($line_accesstoken, $dbh) {
 	$stmt->bindValue(':line_accesstoken', $line_accesstoken);
 	$stmt->execute();
 	$fetch_position = $stmt->fetch(PDO::FETCH_ASSOC);
-	$lat = $fetch_position['latitude'];
-	$lon = $fetch_position['longitude'];
-	return array($lat, $lon);
+	$latitude = $fetch_position['latitude'];
+	$longitude = $fetch_position['longitude'];
+	return array($latitude, $longitude);
 }
 
 //位置情報をDBへ保存
 function saveLocation($dbh, $event) {
-	$query_string = 'UPDATE users SET latitude = :lat, longitude = :lon WHERE line_accesstoken = :line_accesstoken';
+	$query_string = 'UPDATE users SET latitude = :latitude, longitude = :longitude WHERE line_accesstoken = :line_accesstoken';
 	$stmt = $dbh->prepare($query_string);
 	$line_accesstoken= $event['source']['userId'];
-	$lat = $event['message']['latitude'];  //緯度
-	$lon = $event['message']['longitude'];//経度
+	$latitude = $event['message']['latitude'];  //緯度
+	$longitude = $event['message']['longitude'];//経度
 	$stmt->bindValue(':line_accesstoken', $line_accesstoken);
-	$stmt->bindValue(':lat', $lat);
-	$stmt->bindValue(':lon', $lon);
+	$stmt->bindValue(':latitude', $latitude);
+	$stmt->bindValue(':longitude', $longitude);
 	$stmt->execute();
 }

@@ -2,6 +2,7 @@
 
 //Qiitaの記事の検索
 function qiitaArticleSearch($search_word) {
+
 	//messageを2つに分ける。
 	$split_word = explode(" ", $search_word, 2);
 
