@@ -16,6 +16,11 @@
  */
 
 require_once('./LINEBotTiny.php');
+require_once('./query.php');
+require_once('./fetch_qiita_article.php');
+require_once('./wiki_create_url.php');
+require_once('./reply_function.php');
+require_once('./weather_forecast_functions.php');
 
 //.envの呼び出し
 require './vendor/autoload.php';
@@ -28,20 +33,16 @@ foreach ($client->parseEvents() as $event) {
 
 		//ユーザー登録
 		case 'follow':
-			require_once('./db_function.php');
 			saveLineAccesstoken($event['source']['userId'], $dbh);
 			break;
 
 		//ユーザーを削除
 		case 'unfollow':
-			require_once('./db_function.php');
 			deleteAccount($event['source']['userId'], $dbh);
 			break;
 
 		//外に出る時間(departure_time)を保存し、リプライ
 		case 'postback':
-			require_once('./db_function.php');
-			require_once('./reply_function.php');
 			$reply_message = date('m月d日 H時i分', strtotime($event['postback']['params']['datetime'])) . 'やな！任しとき！';
 			saveDepartureTime($event['source']['userId'], $event['postback']['params']['datetime'], $dbh);
 			reply($event['replyToken'], $reply_message, $client);
@@ -56,24 +57,20 @@ foreach ($client->parseEvents() as $event) {
 
 					//Qiita
 					if (strpos($event['message']['text'], 'Qiita') !== false || strpos($event['message']['text'], 'qiita') !== false) {
+
 						//qiitaの記事をスクレイピング
-						require_once('./fetch_qiita_article.php');
 						$reply_message = qiitaArticleSearch($event['message']['text']);
 
 					//Qiitaのトレンド
 					} elseif (strpos($event['message']['text'], 'トレンド') !== false) {
-						require_once('./fetch_qiita_article.php');
 						$reply_message = qiitaTrendSearch();
 
 					//Wiki
 					} elseif (strpos($event['message']['text'], 'Wiki') !== false || strpos($event['message']['text'], 'wiki') !== false) {
-						require_once('./wiki_create_url.php');
 						$reply_message = wikiArticleSearch($event['message']['text']);
 
-					//FIXME::何故か「天気予報」を入れると、DBの位置情報が消える。
 					//天気予報
 					} elseif (strpos($event['message']['text'], '天気予報') !== false) {
-						require_once('./db_function.php');
 						list($lat, $lon) = isValidLocation($event['source']['userId'], $dbh);
 
 						if ($lat === null) {
@@ -81,30 +78,23 @@ foreach ($client->parseEvents() as $event) {
 
 						//天気予報を表示
 						} else {
-							require_once('./weather_forecast_functions.php');
 							$hourly = getWeatherInfo($lat, $lon);
 							$reply_message = weatherForecastReply($hourly);
 							$rain_flag = rainCheck($reply_message);
+							if ($rain_flag === true) {
+								checkNeedsUmbrella($client, $event['replyToken'], $reply_message);
+							}
 						}
-
 					} else {
 						require_once('./reply_chat.php');
 					}
 
-					//雨の場合,傘が必要かリプライ
-					if ($rain_flag === true) {
-						checkNeedsUmbrella($client, $event['replyToken'], $reply_message);
-
-					} else {
-						require_once('./reply_function.php');
-						reply($event['replyToken'], $reply_message, $client);
-						break;
-					}
+					//リプライ
+					reply($event['replyToken'], $reply_message, $client);
+					break;
 
 				//位置情報をDBへ保存
 				case 'location' && 'message':
-					require_once('./db_function.php');
-					require_once('./reply_function.php');
 					$reply_message = '位置情報オッケー！';
 					saveLocation($dbh, $event);
 					reply($event['replyToken'], $reply_message, $client);

@@ -7,59 +7,29 @@ function getWeatherInfo($lat, $lon) {
 	return $weather_info['hourly'];
 }
 
-function weatherForecastReply($hourly) {
-	$forecast_time = [0, 1, 3, 6, 9, 24, 47];
-	foreach ($forecast_time as $i => $hour) {
-		$temp = $hourly[$hour]['temp'];
-		$weather = $hourly[$hour]['weather'][0]['description'];
-
-		//TODO::天気のアイコンを入れたい
-		switch ($hour) {
-			case 0:
-				$reply_message .= '今は' . $weather . '、温度は' . round($temp) . '度' . "\n";
-				break;
-			case 24:
-				$reply_message .= '明日は' . $weather . '、温度は' . round($temp) . '度' . "\n";
-				break;
-			case 47:
-				$reply_message .= '明後日は' . $weather . '、温度は' . round($temp) . '度！' ;
-				break;
-			default:
-				$reply_message .= $hour . '時間後は' . $weather . '、温度は' . round($temp) . '度' . "\n";
-				break;
-		}
-	}
-	return $reply_message;
-}
-/*
-createReplyMessage ($hour, $temp, $weather, $reply_message) {
+function createReplyMessage($hour, $temp, $weather) {
 	switch ($hour) {
 		case 0:
-			$reply_message .= '今は' . $weather . '、温度は' . round($temp) . '度' . "\n";
-			break;
+			return '今は' . $weather . '、温度は' . round($temp) . '度' . "\n";
 		case 24:
-			$reply_message .= '明日は' . $weather . '、温度は' . round($temp) . '度' . "\n";
-			break;
+			return '明日は' . $weather . '、温度は' . round($temp) . '度' . "\n";
 		case 47:
-			$reply_message .= '明後日は' . $weather . '、温度は' . round($temp) . '度！' ;
-			break;
+			return '明後日は' . $weather . '、温度は' . round($temp) . '度！';
 		default:
-			$reply_message .= $hour . '時間後は' . $weather . '、温度は' . round($temp) . '度' . "\n";
-			break;
+			return $hour . '時間後は' . $weather . '、温度は' . round($temp) . '度' . "\n";
 	}
-	return $reply_message;
 }
 
 function weatherForecastReply($hourly) {
+	$reply_message = "";
 	$forecast_time = [0, 1, 3, 6, 9, 24, 47];
 	foreach ($forecast_time as $i => $hour) {
 		$temp = $hourly[$hour]['temp'];
 		$weather = $hourly[$hour]['weather'][0]['description'];
-		$reply_message = createReplyMessage($hour, $temp, $weather, $reply_message);
+		$reply_message .= createReplyMessage($hour, $temp, $weather);
 	}
-return $reply_message;
+	return $reply_message;
 }
- */
 
 //「雨」のワードが入っている場合、フラグを立てる。
 function rainCheck ($reply_message){
@@ -90,17 +60,5 @@ function checkNeedsUmbrella($client, $reply_token, $reply_message) {
 				)
 			)
 		)
-	]);
-}
-
-function reply($client, $reply_token, $reply_message) {
-	$client->replyMessage([
-		'replyToken' => $reply_token,
-		'messages' => [
-			[
-				'type' => 'text',
-				'text' => $reply_message
-			]
-		]
 	]);
 }
