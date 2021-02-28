@@ -10,7 +10,7 @@ function qiitaArticleSearch($search_word) {
 
 		//初めの文字がQiitaだった場合
 		if ($split_word[0] === 'Qiita' || $split_word[0] === 'qiita') {
-			$html = file_get_contents('https://qiita.com/search?sort=&q=' . $split_word[1]);
+			$html = file_get_contents($_ENV["QIITAURL"] . $split_word[1]);
 			$phpobj = phpQuery::newDocument($html);
 			$links = $phpobj["h1 > a"];
 

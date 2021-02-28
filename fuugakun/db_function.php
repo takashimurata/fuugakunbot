@@ -1,8 +1,8 @@
 <?php
-require_once('./db_connection.php');
+require_once('./connect.php');
 
 //line_accesstokenを保存
-function insertLineAccesstoken($line_accesstoken, $dbh) {
+function saveLineAccesstoken($line_accesstoken, $dbh) {
 	$query_string = 'INSERT INTO `users` (line_accesstoken) VALUES (:line_accesstoken)';
 	$stmt = $dbh->prepare($query_string);
 	$stmt->bindValue(':line_accesstoken', $line_accesstoken);
@@ -10,7 +10,7 @@ function insertLineAccesstoken($line_accesstoken, $dbh) {
 }
 
 //ユーザーを削除
-function accountDelete($line_accesstoken, $dbh) {
+function deleteAccount($line_accesstoken, $dbh) {
 	$query_string = 'DELETE FROM users WHERE line_accesstoken = :line_accesstoken';
 	$stmt = $dbh->prepare($query_string);
 	$stmt->bindValue(':line_accesstoken', $line_accesstoken);
@@ -27,7 +27,7 @@ function saveDepartureTime($line_accesstoken, $departure_time, $dbh) {
 }
 
 //位置情報の有無の確認
-function locationCheck($line_accesstoken, $dbh) {
+function isValidLocation($line_accesstoken, $dbh) {
 	$query_string = 'SELECT latitude, longitude FROM users WHERE line_accesstoken = :line_accesstoken';
 	$stmt = $dbh->prepare($query_string);
 	$stmt->bindValue(':line_accesstoken', $line_accesstoken);

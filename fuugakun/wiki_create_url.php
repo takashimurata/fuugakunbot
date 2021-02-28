@@ -7,7 +7,7 @@ function wikiArticleSearch($search_word) {
 		if ($split_word[0] === 'Wiki' || $split_word[0] === 'wiki') {
 			$search_word = $split_word[1];
 			$reply_message .= $search_word . 'をwikiで検索したよ〜' . "\n";
-			$reply_message .= 'https://ja.wikipedia.org/wiki/' . $search_word;
+			$reply_message .= $_ENV["WIKIURL"] . $search_word;
 		}
 		return $reply_message;
 	} else {

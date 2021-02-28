@@ -29,13 +29,13 @@ foreach ($client->parseEvents() as $event) {
 		//ユーザー登録
 		case 'follow':
 			require_once('./db_function.php');
-			insertLineAccesstoken($event['source']['userId'], $dbh);
+			saveLineAccesstoken($event['source']['userId'], $dbh);
 			break;
 
 		//ユーザーを削除
 		case 'unfollow':
 			require_once('./db_function.php');
-			accountDelete($event['source']['userId'], $dbh);
+			deleteAccount($event['source']['userId'], $dbh);
 			break;
 
 		//外に出る時間(departure_time)を保存し、リプライ
@@ -74,7 +74,7 @@ foreach ($client->parseEvents() as $event) {
 					//天気予報
 					} elseif (strpos($event['message']['text'], '天気予報') !== false) {
 						require_once('./db_function.php');
-						list($lat, $lon) = locationCheck($event['source']['userId'], $dbh);
+						list($lat, $lon) = isValidLocation($event['source']['userId'], $dbh);
 
 						if ($lat === null) {
 							$reply_message = 'どこの天気予報したらいいんや！下の＋から位置情報を送って！';
