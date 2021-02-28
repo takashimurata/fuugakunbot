@@ -1,13 +1,14 @@
 <?php
-//DB接続
-$db_path = __DIR__ . '/db_connection.php';
-require_once($db_path);
 
 //.envの呼び出し
 $vendor_path = __DIR__ . '/vendor/autoload.php';
 require $vendor_path;
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
 $dotenv->load();
+
+//DB接続
+$db_path = __DIR__ . '/mysql/connect.php';
+require_once($db_path);
 
 $search_time = date("Y-m-d H:i", strtotime("+10 minute"));
 $query_string = 'SELECT `line_accesstoken` FROM `users` WHERE :search_time >= `departure_time`';
@@ -28,7 +29,6 @@ $reply_message = [
 	]
 ];
 
-//TODO::リファクタ予定
 /**
  *傘リマインドした場合、departure_timeをNULLへ更新(以下のようなquery文を作成)
  *```sql
@@ -42,6 +42,7 @@ $reply_message = [
  *    WHERE `line_accesstoken` IN ("ACCESSTOKEN[1]", "ACCESSTOKEN[2]")
  *```
  */
+
 if (!empty($line_accesstokens)) {
 	$when_phrase_string = '';
 	foreach ($line_accesstokens as $line_accesstoken) {
