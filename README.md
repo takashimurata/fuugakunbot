@@ -95,5 +95,4 @@ CREATE TABLE `users`(
 作成者：村田貴司
  E-mail：fuuga.090690906@gmail.com
 
-# Account
-[LINE Add Friend](https://lin.ee/cez8mNc)
+
