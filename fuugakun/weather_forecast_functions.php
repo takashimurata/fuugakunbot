@@ -32,7 +32,7 @@ function weatherForecastReply($hourly) {
 }
 
 //「雨」のワードが入っている場合、フラグを立てる。
-function rainCheck ($reply_message){
+function rainWordSearch ($reply_message){
 	if (strpos($reply_message, '雨') !== false) {
 		return true;
 	}

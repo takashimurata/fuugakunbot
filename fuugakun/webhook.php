@@ -80,7 +80,7 @@ foreach ($client->parseEvents() as $event) {
 						} else {
 							$hourly = getWeatherInfo($latitude, $longitude);
 							$reply_message = weatherForecastReply($hourly);
-							$rain_flag = rainCheck($reply_message);
+							$rain_flag = rainWordSearch($reply_message);
 							if ($rain_flag === true) {
 								checkNeedsUmbrella($client, $event['replyToken'], $reply_message);
 							}
