@@ -7,6 +7,11 @@
 # functions
 ・天気検索機能
 (雨が降る場合、傘が必要か聞いてくれます)
+<img width="685" alt="スクリーンショット 2021-03-01 23 09 45" src="https://user-images.githubusercontent.com/69385017/109510276-2910d300-7ae5-11eb-8e3e-1ed7842cfb8e.png">
+
+
+
+
 ・qiitaの記事検索
 ・qiitaのトレンド検索
 ・wikipediaの記事検索
