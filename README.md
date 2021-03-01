@@ -9,13 +9,31 @@
 (雨が降る場合、傘が必要か聞いてくれます)
 <img width="685" alt="スクリーンショット 2021-03-01 23 09 45" src="https://user-images.githubusercontent.com/69385017/109510276-2910d300-7ae5-11eb-8e3e-1ed7842cfb8e.png">
 
+雨が降らない場合・・・
 
+<img width="690" alt="スクリーンショット 2021-03-01 23 11 43" src="https://user-images.githubusercontent.com/69385017/109513029-0a600b80-7ae8-11eb-8e1e-0425f33d4894.png">
 
+雨が降る場合・・・
+(こちらのみ携帯のみの機能です)
+
+<img width="432" alt="スクリーンショット 2021-03-01 23 45 35" src="https://user-images.githubusercontent.com/69385017/109513254-42674e80-7ae8-11eb-8da2-4ef9cb5845b5.png">
 
 ・qiitaの記事検索
+
+<img width="685" alt="スクリーンショット 2021-03-01 23 12 50" src="https://user-images.githubusercontent.com/69385017/109512760-c66d0680-7ae7-11eb-8b57-f925994170db.png">
+
 ・qiitaのトレンド検索
+
+<img width="680" alt="スクリーンショット 2021-03-01 23 13 36" src="https://user-images.githubusercontent.com/69385017/109512684-b2c1a000-7ae7-11eb-86a6-e68dd34b9e4c.png">
+
 ・wikipediaの記事検索
+
+<img width="686" alt="スクリーンショット 2021-03-01 23 12 12" src="https://user-images.githubusercontent.com/69385017/109512594-97ef2b80-7ae7-11eb-985c-4fcc34aa7fbe.png">
+
 ・チャット機能
+
+<img width="693" alt="スクリーンショット 2021-03-01 23 15 53" src="https://user-images.githubusercontent.com/69385017/109512836-d7b61300-7ae7-11eb-97bb-0ec9147fb2a9.png">
+
 
 # Requirement
 ・CentOS 7.9
@@ -24,7 +42,7 @@
 ・Mysql5.7
 
 # APIs
-・Line
+・Line 
 ・OpenWeatherMap
 ・Chatplus
 
