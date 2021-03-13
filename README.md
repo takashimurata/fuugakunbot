@@ -83,7 +83,7 @@ cp /etc/php.ini /etc/php-old.ini
 yum remove php-*
 //インストール
 yum install —disablerepo=* —enablerepo=epel,remi,remi-safe,remi-php73 /
-//設定の復元
+//設定の設定
 vi /etc/php.ini
 ```
 
