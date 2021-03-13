@@ -135,7 +135,7 @@ https://github.com/takashimurata/fuugakunbot/blob/develop/fuugakun/webhook.php
 https://github.com/takashimurata/fuugakunbot/blob/develop/fuugakun/rain_remind.php
 
 # Author
-作成者：村田貴司
+作成者：村田貴司<br>
 E-mail：fuuga.090690906@gmail.com
 
 ## Thank you for watching!!
