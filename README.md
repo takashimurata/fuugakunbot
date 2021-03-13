@@ -116,10 +116,27 @@ CREATE TABLE `users`(
     ,`departure_time` datetime DEFAULT NULL
 );
 ```
+
+# 見ていただきたい点
+可能な限りコードが読みやすいように、１処理ごとに関数化を行い、自分自身にコーディング規約を設け、
+コードを書くようにしております。
+書く処理まではご覧いただくことは難しいかと存じますが、
+全体的な処理と、苦労した部分だけでも、ご確認いただけますと大変嬉しく存じます。
+
+・苦労した部分
+個人利用が目的ですが、一部は複数ユーザーの使用を想定して作成致しました。
+複数のアクセストークンを取得し、それぞれのユーザーのカラムをNULLへ更新する
+クエリを作成する処理を作成することに、苦労しました。
+(N+1問題を解決する為）
+
+・Webhook
+https://github.com/takashimurata/fuugakunbot/blob/develop/fuugakun/webhook.php
+
+・苦労した部分
+https://github.com/takashimurata/fuugakunbot/blob/develop/fuugakun/rain_remind.php
+
 # Author
 作成者：村田貴司
- E-mail：fuuga.090690906@gmail.com
-
-
+E-mail：fuuga.090690906@gmail.com
 
 ## Thank you for watching!!
