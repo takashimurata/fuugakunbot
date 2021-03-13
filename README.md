@@ -122,16 +122,16 @@ CREATE TABLE `users`(
 自分自身にコーディング規約を設け、コードを書くようにしております。<br>
 全体的な処理と、苦労した部分を以下に記載致します。<br>
 
-・苦労した部分
+・苦労した部分<br>
 今回は個人利用が目的ですが、一部複数ユーザーの使用を想定して作成致しました。<br>
 複数のアクセストークンを取得し、それぞれのユーザーのカラムをNULLへ更新する<br>
 クエリを作成する処理を作成することに、苦労しました。<br>
 (N+1問題を解決する為）<br>
 
-・Webhook
+・Webhook<br>
 https://github.com/takashimurata/fuugakunbot/blob/develop/fuugakun/webhook.php
 
-・苦労した部分
+・苦労した部分<br>
 https://github.com/takashimurata/fuugakunbot/blob/develop/fuugakun/rain_remind.php
 
 # Author
