@@ -136,6 +136,6 @@ https://github.com/takashimurata/fuugakunbot/blob/develop/fuugakun/rain_remind.p
 
 # Author
 作成者：村田貴司<br>
-E-mail：fuuga.090690906@gmail.com
+E-mail：murata5347@gmail.com
 
 ## Thank you for watching!!
