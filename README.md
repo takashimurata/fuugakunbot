@@ -73,7 +73,7 @@ systemctl enable httpd.service
 systemctl start httpd
 ```
 
-**Php 7.3**
+**PHP 7.3**
 ```
 //epelのインストール
  yum install epel-release
