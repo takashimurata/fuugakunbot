@@ -131,7 +131,7 @@ CREATE TABLE `users`(
 ・Webhook<br>
 https://github.com/takashimurata/fuugakunbot/blob/develop/fuugakun/webhook.php
 
-・苦労した部分(３２〜54行まで)<br>
+・苦労した部分(32〜54行まで)<br>
 https://github.com/takashimurata/fuugakunbot/blob/develop/fuugakun/rain_remind.php
 
 # Author
